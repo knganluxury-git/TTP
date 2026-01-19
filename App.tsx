@@ -9,12 +9,14 @@ import { ActivityLog } from './components/ActivityLog';
 import { PersonalReport } from './components/PersonalReport';
 import { DiscussionBoard } from './components/DiscussionBoard';
 import { Login } from './components/Login';
-import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2 } from 'lucide-react';
-import { auth } from './firebaseConfig';
+import { FirebaseConfigModal } from './components/FirebaseConfigModal'; // New Import
+import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2, Settings2 } from 'lucide-react';
+import { tryInitFirebase, getFirebaseAuth, resetFirebaseConfig } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
-  // --- Auth State ---
+  // --- Config & Auth State ---
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
@@ -27,8 +29,24 @@ export default function App() {
   const [showPersonalReport, setShowPersonalReport] = useState(false);
   const [defaultInterestRate, setDefaultInterestRate] = useState(DEFAULT_INTEREST_RATE_YEARLY);
 
-  // --- Auth Listener ---
+  // --- 1. Init Firebase on Mount ---
   useEffect(() => {
+      const ready = tryInitFirebase();
+      if (ready) {
+          setIsFirebaseReady(true);
+      } else {
+          // If not ready, stop initializing auth, show modal
+          setInitializing(false);
+          setIsFirebaseReady(false);
+      }
+  }, []);
+
+  // --- 2. Auth Listener (Only when Firebase is Ready) ---
+  useEffect(() => {
+    if (!isFirebaseReady) return;
+    
+    setInitializing(true);
+    const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         // Find mapped user in our constant list
@@ -36,9 +54,7 @@ export default function App() {
         if (appUser) {
             setCurrentUser(appUser);
         } else {
-            // Valid firebase login but email not in our system
             console.warn("User logged in but not found in INITIAL_USERS:", firebaseUser.email);
-            // Optionally handle "Guest" or "Unauthorized" view here
             setCurrentUser(null); 
             alert("Tài khoản này chưa được cấu hình trong hệ thống TTP Home.");
             signOut(auth);
@@ -49,10 +65,17 @@ export default function App() {
       setInitializing(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isFirebaseReady]);
 
   const handleLogout = () => {
+      const auth = getFirebaseAuth();
       signOut(auth);
+  };
+
+  const handleResetConfig = () => {
+      if(window.confirm("Bạn có chắc muốn xóa cấu hình Firebase và nhập lại không?")) {
+          resetFirebaseConfig();
+      }
   };
 
   // --- Derived State (Debts) ---
@@ -69,7 +92,7 @@ export default function App() {
     });
   }, [stages, costs]);
 
-  // --- Handlers (CRUD operations remain same, just removed User Switcher logic) ---
+  // --- Handlers (CRUD operations remain same) ---
   const handleAddStage = () => {
     const newStage: Stage = {
       id: `s${Date.now()}`,
@@ -282,7 +305,12 @@ export default function App() {
   };
 
   const renderContent = () => {
-    // If loading, show loader
+    // 1. Check if Firebase Config is missing
+    if (!isFirebaseReady) {
+        return <FirebaseConfigModal onSuccess={() => window.location.reload()} />;
+    }
+
+    // 2. Loading Auth State
     if (initializing) {
         return (
             <div className="h-screen flex items-center justify-center bg-slate-50">
@@ -291,12 +319,23 @@ export default function App() {
         )
     }
 
-    // If not logged in, show Login
+    // 3. Not Logged In
     if (!currentUser) {
-        return <Login />;
+        return (
+          <div className="relative">
+             <Login />
+             <button 
+                onClick={handleResetConfig}
+                className="fixed bottom-4 right-4 p-2 bg-slate-800 text-slate-400 rounded-full hover:text-white transition opacity-50 hover:opacity-100 z-50"
+                title="Reset Firebase Config"
+             >
+                <Settings2 className="w-4 h-4" />
+             </button>
+          </div>
+        );
     }
 
-    // Main App
+    // 4. Main App
     const MainView = () => {
         switch (view) {
           case 'TIMELINE':
@@ -443,12 +482,21 @@ export default function App() {
                        <div className="text-[10px] text-slate-400 truncate">{currentUser.email}</div>
                    </div>
                </div>
-               <button 
-                 onClick={handleLogout}
-                 className="w-full mt-3 flex items-center justify-center gap-2 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
-               >
-                   <LogOut className="w-3 h-3" /> Đăng xuất
-               </button>
+               <div className="flex items-center gap-2 mt-3">
+                    <button 
+                        onClick={handleLogout}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
+                    >
+                        <LogOut className="w-3 h-3" /> Đăng xuất
+                    </button>
+                    <button 
+                        onClick={handleResetConfig}
+                        className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded transition"
+                        title="Reset Firebase Config"
+                    >
+                        <Settings2 className="w-3 h-3" />
+                    </button>
+               </div>
             </div>
           </aside>
     

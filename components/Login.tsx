@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { auth } from '../firebaseConfig';
+import { getFirebaseAuth } from '../firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
@@ -16,11 +16,15 @@ export const Login: React.FC = () => {
         setError('');
 
         try {
+            // Get the initialized auth instance
+            const auth = getFirebaseAuth();
             await signInWithEmailAndPassword(auth, email, password);
             // App.tsx auth listener will handle the redirection
         } catch (err: any) {
             console.error(err);
-            if (err.code === 'auth/invalid-credential') {
+            if (err.message?.includes('Firebase chưa được khởi tạo')) {
+                 setError('Lỗi cấu hình hệ thống. Vui lòng tải lại trang.');
+            } else if (err.code === 'auth/invalid-credential') {
                 setError('Email hoặc mật khẩu không đúng.');
             } else if (err.code === 'auth/too-many-requests') {
                 setError('Quá nhiều lần thử sai. Vui lòng thử lại sau.');
