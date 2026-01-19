@@ -180,6 +180,79 @@ const BudgetInput = ({ value, onUpdate }: { value: number, onUpdate: (val: numbe
     );
 };
 
+const StageDateRangeInput = ({ startDate, endDate, onUpdate }: { startDate: string, endDate: string, onUpdate: (start: string, end: string) => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [tempStart, setTempStart] = useState(startDate);
+    const [tempEnd, setTempEnd] = useState(endDate);
+
+    useEffect(() => {
+        setTempStart(startDate);
+        setTempEnd(endDate);
+    }, [startDate, endDate]);
+
+    const handleSave = () => {
+        if (tempStart !== startDate || tempEnd !== endDate) {
+            onUpdate(tempStart, tempEnd);
+        }
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        setTempStart(startDate);
+        setTempEnd(endDate);
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <div className="flex flex-wrap items-center gap-2 mb-3 animate-in fade-in zoom-in-95 duration-200">
+                <input 
+                    type="date" 
+                    value={tempStart}
+                    onChange={(e) => setTempStart(e.target.value)}
+                    className="border border-indigo-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+                <span className="text-slate-400">→</span>
+                <input 
+                    type="date" 
+                    value={tempEnd}
+                    onChange={(e) => setTempEnd(e.target.value)}
+                    className="border border-indigo-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-indigo-100 outline-none"
+                />
+                <div className="flex gap-1 ml-1">
+                    <button 
+                        onClick={handleSave} 
+                        className="p-1 bg-green-100 text-green-700 hover:bg-green-200 rounded shadow-sm"
+                        title="Lưu ngày"
+                    >
+                        <Check size={14} strokeWidth={3} />
+                    </button>
+                    <button 
+                        onClick={handleCancel} 
+                        className="p-1 bg-red-100 text-red-700 hover:bg-red-200 rounded shadow-sm"
+                        title="Hủy"
+                    >
+                        <X size={14} strokeWidth={3} />
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div 
+            onClick={() => setIsEditing(true)}
+            className="group flex items-center gap-3 mb-3 text-sm text-slate-500 cursor-pointer w-fit p-1 -ml-1 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all"
+        >
+            <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
+            <span className={!startDate ? "text-slate-300 italic" : ""}>{formatDate(startDate) || "Bắt đầu"}</span>
+            <span className="text-slate-300">→</span>
+            <span className={!endDate ? "text-slate-300 italic" : ""}>{formatDate(endDate) || "Kết thúc"}</span>
+            <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-indigo-500 transition-opacity" />
+        </div>
+    );
+};
+
 
 export const Timeline: React.FC<TimelineProps> = ({ 
   stages, 
@@ -261,21 +334,11 @@ export const Timeline: React.FC<TimelineProps> = ({
                         </div>
                         
                         {role === Role.ADMIN ? (
-                            <div className="flex items-center gap-2 mb-3">
-                                <input 
-                                type="date" 
-                                value={stage.startDate}
-                                onChange={(e) => onUpdateStageDates(stage.id, e.target.value, stage.endDate)}
-                                className="border border-slate-200 rounded px-2 py-1 text-xs text-slate-600 bg-white focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer hover:border-blue-300 transition-colors"
-                                />
-                                <span className="text-slate-400">→</span>
-                                <input 
-                                type="date" 
-                                value={stage.endDate}
-                                onChange={(e) => onUpdateStageDates(stage.id, stage.startDate, e.target.value)}
-                                className="border border-slate-200 rounded px-2 py-1 text-xs text-slate-600 bg-white focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer hover:border-blue-300 transition-colors"
-                                />
-                            </div>
+                            <StageDateRangeInput 
+                                startDate={stage.startDate}
+                                endDate={stage.endDate}
+                                onUpdate={(start, end) => onUpdateStageDates(stage.id, start, end)}
+                            />
                         ) : (
                             <div className="flex items-center gap-3 mb-3 text-sm text-slate-500">
                                 <CalendarIcon className="w-3.5 h-3.5" />
