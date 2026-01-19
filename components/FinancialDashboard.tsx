@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
@@ -163,6 +164,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   useEffect(() => {
     setFormInterestRate(defaultInterestRate.toString());
   }, [defaultInterestRate, showAddForm]);
+
+  // Auto-select first stage if none selected (useful when starting with 0 stages then adding one)
+  useEffect(() => {
+    if (!stageId && stages.length > 0) {
+        setStageId(stages[0].id);
+    }
+  }, [stages, stageId]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAmount(formatNumberInput(e.target.value));
@@ -439,7 +447,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Giai đoạn</label>
-                        <select value={stageId} onChange={e => setStageId(e.target.value)} className="w-full border rounded-lg p-3 text-sm bg-white">
+                        <select value={stageId} onChange={e => setStageId(e.target.value)} className="w-full border rounded-lg p-3 text-sm bg-white" required>
+                           {stages.length === 0 && <option value="">Vui lòng tạo giai đoạn trước</option>}
                            {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
@@ -488,7 +497,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
                    <div className="flex justify-end gap-3 pt-2">
                       <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-slate-600 text-sm hover:bg-slate-200 rounded-lg transition-colors">Hủy</button>
-                      <button type="submit" className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 shadow-sm transition-colors">Lưu chi phí</button>
+                      <button type="submit" disabled={stages.length === 0} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                          {stages.length === 0 ? 'Cần tạo giai đoạn trước' : 'Lưu chi phí'}
+                      </button>
                    </div>
                 </form>
              </div>

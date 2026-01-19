@@ -1,9 +1,25 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { Cost, Stage, DebtRecord, User } from "../types";
 import { formatCurrency, formatDate } from "../utils/finance";
 
 const getAIClient = () => {
-    const apiKey = process.env.API_KEY;
+    // FIX: Browser crash due to 'process is not defined'.
+    // In Vite, we use import.meta.env.
+    // We check both methods to support different build environments safely.
+    let apiKey = "";
+    try {
+        // Safe access for Vite
+        const env = (import.meta as any).env;
+        if (env && env.API_KEY) {
+            apiKey = env.API_KEY;
+        } else if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+            apiKey = process.env.API_KEY;
+        }
+    } catch (e) {
+        console.warn("Could not read environment variables safely.");
+    }
+
     if (!apiKey) {
         console.error("API Key not found in environment");
         return null;
@@ -63,7 +79,7 @@ export const chatWithFinancialAssistant = async (
     chatHistory: {role: 'user' | 'model', text: string}[]
 ): Promise<string> => {
     const ai = getAIClient();
-    if (!ai) return "Lỗi: Thiếu API Key. Vui lòng kiểm tra cấu hình.";
+    if (!ai) return "Lỗi: Thiếu API Key hoặc cấu hình chưa đúng. Vui lòng kiểm tra file .env";
 
     const cleanData = prepareContextForAI(context);
     const dataString = JSON.stringify(cleanData, null, 2);
