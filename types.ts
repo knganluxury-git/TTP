@@ -7,6 +7,7 @@ export enum Role {
 export interface User {
   id: string;
   name: string;
+  email: string; // Added email for Firebase Auth mapping
   role: Role;
   avatar: string;
 }

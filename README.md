@@ -1,7 +1,7 @@
 
 # Hướng Dẫn Triển Khai Ứng Dụng "Quản lý Nhà TTP" Lên Firebase
 
-Tài liệu này hướng dẫn cách thiết lập môi trường phát triển (Local), build ứng dụng và triển khai lên Firebase Hosting.
+Tài liệu này hướng dẫn cách thiết lập môi trường phát triển (Local), cấu hình Authentication, build ứng dụng và triển khai lên Firebase Hosting.
 
 ## 1. Chuẩn bị môi trường
 
@@ -11,8 +11,6 @@ Trước khi bắt đầu, hãy đảm bảo bạn đã cài đặt:
 *   **Tài khoản Google** (để sử dụng Firebase)
 
 ## 2. Khởi tạo dự án (Local)
-
-Vì trình duyệt không thể chạy trực tiếp file `.tsx`, chúng ta cần sử dụng **Vite** để biên dịch code.
 
 Mở Terminal (Command Prompt/PowerShell) và chạy các lệnh sau:
 
@@ -27,33 +25,53 @@ cd ttp-home
 npm install lucide-react recharts @google/genai firebase
 ```
 
-## 3. Sao chép mã nguồn
+## 3. Cấu hình Firebase & Authentication
 
-Bây giờ hãy sao chép nội dung các file từ mã nguồn hiện tại vào cấu trúc thư mục của Vite:
+### Bước 1: Tạo dự án Firebase Console
+1. Truy cập [Firebase Console](https://console.firebase.google.com/).
+2. Tạo dự án mới (Ví dụ: `ttp-home`).
+3. Tắt Google Analytics (không cần thiết cho demo).
 
-1.  **`index.html`**:
-    *   Mở file `index.html` trong thư mục gốc của Vite.
-    *   Thêm dòng này vào trong thẻ `<head>` để giữ nguyên giao diện Tailwind CSS:
-        ```html
-        <script src="https://cdn.tailwindcss.com"></script>
-        ```
-    *   *Lưu ý: Không cần copy phần `importmap` vì Vite sẽ tự xử lý thư viện.*
+### Bước 2: Bật tính năng Authentication
+1. Trong menu bên trái, chọn **Authentication**.
+2. Nhấn **Get Started**.
+3. Chọn tab **Sign-in method**, chọn **Email/Password**.
+4. Bật công tắc **Enable**, sau đó nhấn **Save**.
 
-2.  **Sao chép các file code vào thư mục `src/`**:
-    *   Tạo các thư mục con: `src/components`, `src/services`, `src/utils`.
-    *   Sao chép nội dung các file tương ứng:
-        *   `types.ts` -> `src/types.ts`
-        *   `constants.ts` -> `src/constants.ts`
-        *   `App.tsx` -> `src/App.tsx`
-        *   `services/geminiService.ts` -> `src/services/geminiService.ts`
-        *   `utils/finance.ts` -> `src/utils/finance.ts`
-        *   Các file trong `components/` -> `src/components/`
+### Bước 3: Tạo tài khoản người dùng
+Do ứng dụng này dành riêng cho nội bộ, bạn cần tạo tay 3 tài khoản này trong tab **Users** của Authentication:
 
-## 4. Cấu hình Biến Môi trường (API Key)
+| Email | Mật khẩu (Tự đặt) | Vai trò (Mapping) |
+|---|---|---|
+| `tuanchom@ttp.com` | `123456` | Admin |
+| `tamtrang@ttp.com` | `123456` | Viewer |
+| `phi@ttp.com` | `123456` | Viewer |
 
-Vite sử dụng `import.meta.env` thay vì `process.env`. Tuy nhiên, để tránh phải sửa code, chúng ta sẽ cấu hình Vite để hiểu `process.env`.
+*(Lưu ý: Mật khẩu bạn tự đặt, sau đó cung cấp cho các thành viên)*
 
-1.  Mở file `vite.config.ts` và sửa lại như sau:
+### Bước 4: Lấy config Firebase
+1. Vào **Project Settings** (biểu tượng bánh răng).
+2. Cuộn xuống phần **Your apps**, chọn biểu tượng web `</>`.
+3. Đặt tên app (ví dụ: `ttp-web`), bỏ chọn "Also set up Firebase Hosting" lúc này, nhấn **Register app**.
+4. Bạn sẽ thấy đoạn mã `const firebaseConfig = { ... }`.
+
+### Bước 5: Cấu hình biến môi trường
+Tạo file `.env` ở thư mục gốc dự án Vite và điền các thông số từ bước 4 vào (Vite yêu cầu prefix `VITE_`):
+
+```env
+API_KEY=AIzaSy... (API Key Gemini của bạn)
+
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=ttp-home.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=ttp-home
+VITE_FIREBASE_STORAGE_BUCKET=ttp-home.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
+
+## 4. Cấu hình Vite
+
+Mở file `vite.config.ts` và đảm bảo cấu hình như sau để load env:
 
 ```typescript
 import { defineConfig, loadEnv } from 'vite'
@@ -71,15 +89,13 @@ export default defineConfig(({ mode }) => {
 })
 ```
 
-2.  Tạo file `.env` ở thư mục gốc (cung cấp API Key của bạn):
+## 5. Sao chép mã nguồn
 
-```env
-API_KEY=AIzaSy... (Dán key Gemini của bạn vào đây)
-```
+Sao chép toàn bộ source code vào thư mục `src/` của dự án Vite (như hướng dẫn trong file code).
 
-## 5. Thiết lập Firebase Hosting
+## 6. Thiết lập Firebase Hosting & Deploy
 
-1.  Cài đặt Firebase CLI (nếu chưa có):
+1.  Cài đặt Firebase CLI:
     ```bash
     npm install -g firebase-tools
     ```
@@ -93,27 +109,16 @@ API_KEY=AIzaSy... (Dán key Gemini của bạn vào đây)
     ```bash
     firebase init
     ```
-    *   Chọn: **Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action deploys** (Dùng phím cách để chọn, Enter để xác nhận).
-    *   Chọn: **Use an existing project** (nếu đã tạo trên web) hoặc **Create a new project**.
+    *   Chọn: **Hosting: Configure files for Firebase Hosting and (optionally) set up GitHub Action deploys**.
+    *   Chọn: **Use an existing project** -> Chọn dự án bạn vừa tạo.
     *   **What do you want to use as your public directory?** -> Nhập: `dist`
-    *   **Configure as a single-page app (rewrite all urls to /index.html)?** -> Nhập: `y`
+    *   **Configure as a single-page app?** -> Nhập: `y`
     *   **Set up automatic builds and deploys with GitHub?** -> Nhập: `n`
 
-## 6. Build và Triển khai (Deploy)
+4.  Build và Triển khai:
+    ```bash
+    npm run build
+    firebase deploy
+    ```
 
-Sau khi thiết lập xong, thực hiện lệnh sau để đẩy ứng dụng lên mạng:
-
-```bash
-# 1. Build ứng dụng (tạo thư mục dist)
-npm run build
-
-# 2. Đẩy lên Firebase
-firebase deploy
-```
-
-Sau khi chạy xong, Firebase sẽ cung cấp cho bạn một đường link (ví dụ: `https://ttp-home.web.app`).
-
-## Lưu ý quan trọng
-
-*   **Bảo mật API Key:** Do đây là ứng dụng Frontend thuần túy (Static Site), API Key sẽ bị lộ trong mã nguồn trên trình duyệt. Đối với các dự án thực tế cần bảo mật cao, bạn nên gọi Gemini API thông qua một Backend (ví dụ: Firebase Cloud Functions) thay vì gọi trực tiếp từ React.
-*   **Cập nhật:** Mỗi khi bạn sửa code, hãy chạy lại `npm run build` và `firebase deploy`.
+Ứng dụng sẽ online tại đường dẫn dạng: `https://[project-id].web.app`.
