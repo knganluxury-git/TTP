@@ -1,3 +1,4 @@
+
 import { Cost, DebtRecord, User, DebtDetail, Payment } from '../types';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -43,25 +44,15 @@ export const calculateDaysDiff = (startDateStr: string, endDateStr?: string): nu
 
 /**
  * Calculates simple interest for a specific period on a specific principal.
+ * DISABLE INTEREST: Always return 0.
  */
 export const calculateInterest = (principal: number, yearlyRate: number, days: number): number => {
-  if (days <= 0 || principal <= 0) return 0;
-  const dailyRate = (yearlyRate / 100) / 365;
-  return Math.round(principal * dailyRate * days);
+  return 0; 
 };
 
 /**
- * Advanced Loan Status Calculation (Segmented Method)
- * 
- * Logic:
- * 1. Start with initial principal.
- * 2. Move time forward from Start Date.
- * 3. Whenever a payment occurs:
- *    a. Calculate interest accrued from Last Event -> Payment Date on Current Principal.
- *    b. Add to Total Accrued Interest.
- *    c. Subtract Payment Principal from Current Principal.
- *    d. Add Payment Interest to Total Paid Interest.
- * 4. Finally, calculate interest from Last Event -> Target Date (Now).
+ * Advanced Loan Status Calculation
+ * DISABLE INTEREST LOGIC: Only tracks Principal.
  */
 export const calculateLoanStatus = (
     initialPrincipal: number,
@@ -71,12 +62,13 @@ export const calculateLoanStatus = (
     targetDateStr?: string // Defaults to Now if undefined
 ) => {
     let currentPrincipal = initialPrincipal;
-    let totalAccruedInterest = 0;
+    const totalAccruedInterest = 0; // Disabled
     let totalPaidInterest = 0;
     
     // Sort payments chronologically
     const sortedPayments = [...payments].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
+    // Determine the last event date (purely for 'daysSinceLastEvent' display if needed)
     let lastDate = new Date(startDateStr);
     lastDate.setHours(0, 0, 0, 0);
 
@@ -85,42 +77,24 @@ export const calculateLoanStatus = (
         const payDate = new Date(payment.date);
         payDate.setHours(0, 0, 0, 0);
 
-        // Calculate days since last event
-        const diffTime = payDate.getTime() - lastDate.getTime();
-        const days = Math.max(0, Math.floor(diffTime / MS_PER_DAY));
-
-        // Accrue interest for this segment
-        if (days > 0 && currentPrincipal > 0) {
-            const segmentInterest = calculateInterest(currentPrincipal, yearlyRate, days);
-            totalAccruedInterest += segmentInterest;
-        }
-
-        // Apply payment
+        // Apply payment (Only reduce principal)
         currentPrincipal -= payment.amount;
-        totalPaidInterest += (payment.interest || 0);
+        totalPaidInterest += (payment.interest || 0); // Keep tracking if data exists, but won't be used for debt calc
         
-        // Move cursor
         lastDate = payDate;
     }
 
-    // Calculate pending interest from Last Payment -> Target Date (Now)
+    // Calculate days from Last Payment -> Target Date (Now)
     const targetDate = targetDateStr ? new Date(targetDateStr) : new Date();
     targetDate.setHours(0, 0, 0, 0);
     
     const diffFinal = targetDate.getTime() - lastDate.getTime();
     const daysFinal = Math.max(0, Math.floor(diffFinal / MS_PER_DAY));
 
-    if (daysFinal > 0 && currentPrincipal > 0) {
-        const finalSegmentInterest = calculateInterest(currentPrincipal, yearlyRate, daysFinal);
-        totalAccruedInterest += finalSegmentInterest;
-    }
-
-    const remainingInterest = totalAccruedInterest - totalPaidInterest;
-
     return {
         remainingPrincipal: currentPrincipal,
-        remainingInterest: remainingInterest, // Can be negative if overpaid, but logically implies credit
-        totalAccruedInterest,
+        remainingInterest: 0, // Disabled
+        totalAccruedInterest: 0, // Disabled
         totalPaidInterest,
         daysSinceLastEvent: daysFinal
     };
@@ -145,18 +119,17 @@ export const calculateDebts = (
 
       const debtorId = allocation.userId;
       
-      // USE NEW LOGIC: Calculate status based on history
+      // Calculate status (Interest will return 0)
       const status = calculateLoanStatus(
           allocation.amount,
           cost.date,
-          cost.interestRate,
+          0, // Force rate 0
           allocation.payments || []
       );
 
-      // If fully paid (Principal <= 0 AND Interest <= 0), we can skip adding to debt record
-      // OR we add it but it shows 0. Let's add it if there is any balance.
+      // If fully paid (Principal <= 0), skip
       // We allow small floating point margin or exact 0.
-      if (status.remainingPrincipal <= 0 && status.remainingInterest <= 0) return;
+      if (status.remainingPrincipal <= 0) return;
 
       // Initialize maps if needed
       if (!debtMap.has(debtorId)) {
@@ -177,19 +150,17 @@ export const calculateDebts = (
 
       const record = debtorRecords.get(payerId)!;
       record.principal += status.remainingPrincipal;
-      // If user overpaid interest, we sum it as is (reducing total debt), or clamp to 0? 
-      // Usually in this app context, debt is debt.
-      record.interest += status.remainingInterest;
-      record.totalDebt += (status.remainingPrincipal + status.remainingInterest);
+      record.interest += 0; // Disabled
+      record.totalDebt += status.remainingPrincipal; // Only Principal
       
       record.details.push({
         costId: cost.id,
         description: cost.description,
         dateIncurred: cost.date,
-        daysOverdue: status.daysSinceLastEvent, // Shows days since last activity
+        daysOverdue: status.daysSinceLastEvent,
         principal: status.remainingPrincipal,
-        interest: status.remainingInterest,
-        interestRate: cost.interestRate
+        interest: 0,
+        interestRate: 0
       });
     });
   });
@@ -198,9 +169,8 @@ export const calculateDebts = (
   const allDebts: DebtRecord[] = [];
   debtMap.forEach((creditorMap) => {
     creditorMap.forEach((record) => {
-      // Round numbers for display cleanliness
       record.principal = Math.round(record.principal);
-      record.interest = Math.round(record.interest);
+      record.interest = 0;
       record.totalDebt = Math.round(record.totalDebt);
       allDebts.push(record);
     });

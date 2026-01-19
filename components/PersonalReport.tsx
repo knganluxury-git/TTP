@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { User, Cost, DebtRecord } from '../types';
 import { formatCurrency, formatDate } from '../utils/finance';
@@ -28,7 +29,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
       .filter(c => c.status === 'APPROVED' && c.payerId === user.id)
       .reduce((acc, c) => acc + c.amount, 0);
 
-    // Part B: Money paid to friends (Internal Debt Repayment - Principal ONLY)
+    // Part B: Money paid to friends (Internal Debt Repayment)
     const internalRepayments = costs
       .filter(c => c.status === 'APPROVED')
       .reduce((acc, c) => {
@@ -43,7 +44,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
         return acc;
       }, 0);
 
-    // Part C: Money received from friends (Repayment In - Principal ONLY)
+    // Part C: Money received from friends (Repayment In)
     const repaymentReceived = costs
       .filter(c => c.status === 'APPROVED' && c.payerId === user.id)
       .reduce((acc, c) => {
@@ -59,36 +60,6 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
     // Net Cash Outflow = (Money Out) - (Money In)
     const totalPaid = (directProjectPayments + internalRepayments) - repaymentReceived;
 
-    // --- INTEREST METRICS ---
-    
-    // Total Interest PAID (Money I paid on top of principal)
-    const totalInterestPaid = costs
-      .filter(c => c.status === 'APPROVED')
-      .reduce((acc, c) => {
-        // If I am the payer (Creditor), I don't pay interest
-        if (c.payerId === user.id) return acc;
-
-        const myAlloc = c.allocations.find(a => a.userId === user.id);
-        if (myAlloc && myAlloc.payments) {
-            const interestSum = myAlloc.payments.reduce((sum, p) => sum + (p.interest || 0), 0);
-            return acc + interestSum;
-        }
-        return acc;
-      }, 0);
-
-    // Total Interest RECEIVED (Money I earned from others)
-    const totalInterestReceived = costs
-      .filter(c => c.status === 'APPROVED' && c.payerId === user.id)
-      .reduce((acc, c) => {
-         const othersAlloc = c.allocations.filter(a => a.userId !== user.id);
-         const interestFromOthers = othersAlloc.reduce((aSum, alloc) => {
-              const pInterest = (alloc.payments || []).reduce((pSum, p) => pSum + (p.interest || 0), 0);
-              return aSum + pInterest;
-         }, 0);
-         return acc + interestFromOthers;
-      }, 0);
-
-
     // Receivables (People owe me)
     const receivables = debts
       .filter(d => d.creditorId === user.id)
@@ -99,7 +70,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
       .filter(d => d.debtorId === user.id)
       .reduce((acc, d) => acc + d.totalDebt, 0);
 
-    return { totalShare, totalPaid, totalInterestPaid, totalInterestReceived, receivables, payables };
+    return { totalShare, totalPaid, receivables, payables };
   }, [costs, debts, user.id]);
 
   // 2. Get Personal Transaction History
@@ -138,8 +109,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
             if (a.payments) {
                 a.payments.forEach(p => {
                     const principal = p.amount;
-                    const interest = p.interest || 0;
-                    const totalMoney = principal + interest;
+                    // Interest ignored
 
                     // I paid someone back
                     if (a.userId === user.id) {
@@ -149,8 +119,8 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                              date: p.date,
                              description: `Trả nợ: ${c.description}`,
                              type: 'REPAY_OUT',
-                             amount: totalMoney,
-                             detail: `Gốc: ${formatCurrency(principal)} + Lãi: ${formatCurrency(interest)} (Trả cho ${receiver})`
+                             amount: principal,
+                             detail: `Đã trả cho ${receiver}`
                         });
                     }
                     // Someone paid me back
@@ -161,8 +131,8 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                              date: p.date,
                              description: `Nhận trả nợ: ${c.description}`,
                              type: 'REPAY_IN',
-                             amount: totalMoney,
-                             detail: `Gốc: ${formatCurrency(principal)} + Lãi: ${formatCurrency(interest)} (Nhận từ ${sender})`
+                             amount: principal,
+                             detail: `Nhận từ ${sender}`
                         });
                     }
                 });
@@ -215,25 +185,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                     </div>
                  </div>
 
-                 {/* Interest Row */}
-                 <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl bg-rose-50 border border-rose-100">
-                        <div className="flex items-center gap-2 text-rose-600 mb-1">
-                            <Percent className="w-4 h-4" />
-                            <span className="text-[10px] font-bold uppercase">Tổng lãi đã trả</span>
-                        </div>
-                        <div className="text-lg font-bold text-slate-800">{formatCurrency(summary.totalInterestPaid)}</div>
-                        <p className="text-[10px] text-slate-500">Lãi đã thanh toán cho bạn bè</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                        <div className="flex items-center gap-2 text-emerald-600 mb-1">
-                            <TrendingUp className="w-4 h-4" />
-                            <span className="text-[10px] font-bold uppercase">Tổng lãi thu được</span>
-                        </div>
-                        <div className="text-lg font-bold text-slate-800">{formatCurrency(summary.totalInterestReceived)}</div>
-                        <p className="text-[10px] text-slate-500">Lãi đã nhận từ bạn bè</p>
-                    </div>
-                 </div>
+                 {/* Interest Row REMOVED */}
 
                  <div className="p-4 rounded-xl bg-slate-800 text-white shadow-lg">
                     <div className="flex items-center justify-between mb-2">

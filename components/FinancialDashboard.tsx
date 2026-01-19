@@ -76,7 +76,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   } | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
-  const [paymentInterestInput, setPaymentInterestInput] = useState('');
 
   // Auto scroll chat
   useEffect(() => {
@@ -124,31 +123,23 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     
     // The user inputs how much Principal they want to pay off
     const amountToPay = parseFormattedNumber(paymentAmountInput);
-    const interestToPay = parseFormattedNumber(paymentInterestInput);
-
+    
     // RE-CALCULATE status based on the selected Payment Date
     const status = calculateLoanStatus(
         confirmPayment.initialPrincipal,
         confirmPayment.transactionDate,
-        confirmPayment.interestRate,
+        0, // Force 0 rate
         confirmPayment.paymentsHistory,
         paymentDate // Target date for calculation
     );
-
-    // Suggested interest is the remaining interest (Accrued - Paid)
-    // If negative (overpaid previously), suggest 0 or negative
-    const suggestedInterest = Math.max(0, status.remainingInterest);
     
     return {
         principal: amountToPay,
         remainingBeforePay: status.remainingPrincipal,
-        inputInterest: interestToPay,
-        suggestedInterest: suggestedInterest,
-        totalPayment: amountToPay + interestToPay,
-        days: status.daysSinceLastEvent,
-        totalAccrued: status.totalAccruedInterest
+        totalPayment: amountToPay, // No Interest
+        days: status.daysSinceLastEvent
     };
-  }, [confirmPayment, paymentDate, paymentAmountInput, paymentInterestInput]);
+  }, [confirmPayment, paymentDate, paymentAmountInput]);
 
   // Form State
   const [description, setDescription] = useState('');
@@ -156,14 +147,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   const [stageId, setStageId] = useState(stages[0]?.id || '');
   const [payerId, setPayerId] = useState(currentUser.id);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [formInterestRate, setFormInterestRate] = useState(defaultInterestRate.toString());
   const [allocType, setAllocType] = useState<'EQUAL' | 'CUSTOM'>('EQUAL');
   const [customAmounts, setCustomAmounts] = useState<{[key:string]: string}>({});
-
-  // Reset form interest rate when default changes or form opens
-  useEffect(() => {
-    setFormInterestRate(defaultInterestRate.toString());
-  }, [defaultInterestRate, showAddForm]);
 
   // Auto-select first stage if none selected (useful when starting with 0 stages then adding one)
   useEffect(() => {
@@ -187,16 +172,11 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     setPaymentAmountInput(formatNumberInput(e.target.value));
   };
 
-  const handlePaymentInterestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPaymentInterestInput(formatNumberInput(e.target.value));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFormattedNumber(amount);
-    const numRate = parseFloat(formInterestRate);
-
-    if (!description || !numAmount || !stageId || isNaN(numRate)) return;
+    
+    if (!description || !numAmount || !stageId) return;
 
     let allocations = [];
     if (allocType === 'EQUAL') {
@@ -215,7 +195,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       amount: numAmount,
       payerId,
       date,
-      interestRate: numRate,
+      interestRate: 0, // Force 0
       isCustomAllocation: allocType === 'CUSTOM',
       allocations
     });
@@ -238,7 +218,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       setPaymentDate(new Date().toISOString().split('T')[0]); // Default to today
       
       // Calculate current status to pre-fill
-      const status = calculateLoanStatus(initialPrincipal, transactionDate, interestRate, paymentsHistory);
+      const status = calculateLoanStatus(initialPrincipal, transactionDate, 0, paymentsHistory);
       
       setConfirmPayment({ 
           costId, 
@@ -247,12 +227,10 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
           initialPrincipal,
           paymentsHistory,
           transactionDate, 
-          interestRate 
+          interestRate: 0
       });
       
       setPaymentAmountInput(formatNumberInput(status.remainingPrincipal.toString()));
-      // Pre-fill interest with the currently outstanding interest
-      setPaymentInterestInput(formatNumberInput(Math.max(0, status.remainingInterest).toString()));
   };
 
   // --- AI HANDLER ---
@@ -290,7 +268,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   }, [costs]);
 
   // 2. Contribution Share (Allocated amount per user in approved costs)
-  // This is "Trách nhiệm đóng góp", NOT "Tiền mặt đã chi"
   const contributionData = useMemo(() => {
       return users.map(u => {
           const totalShare = costs
@@ -438,13 +415,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                             placeholder="0" 
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Lãi suất (%/năm)</label>
-                        <div className="relative">
-                            <input required type="number" value={formInterestRate} onChange={e => setFormInterestRate(e.target.value)} className="w-full border rounded-lg p-3 pr-8 text-sm" placeholder="10" />
-                            <Percent className="w-3 h-3 text-slate-400 absolute right-3 top-3.5" />
-                        </div>
-                      </div>
+                      {/* Interest Rate Input REMOVED */}
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Giai đoạn</label>
                         <select value={stageId} onChange={e => setStageId(e.target.value)} className="w-full border rounded-lg p-3 text-sm bg-white" required>
@@ -458,7 +429,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                         </select>
                       </div>
-                      <div>
+                      <div className="md:col-span-2">
                          <label className="block text-xs font-medium text-slate-500 mb-1">Ngày</label>
                          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded-lg p-3 text-sm bg-white" />
                       </div>
@@ -537,7 +508,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                        <span className="truncate max-w-[120px] sm:max-w-none">{stageName}</span>
                                     </div>
                                     <div className="text-xs text-slate-500 mt-0.5 truncate">
-                                       Chi bởi <span className="font-semibold text-indigo-600">{payerName}</span> • {cost.interestRate}%/năm
+                                       Chi bởi <span className="font-semibold text-indigo-600">{payerName}</span>
                                     </div>
                                 </div>
                              </div>
@@ -594,9 +565,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                               const paidAmount = a.paidAmount || 0;
                                               
                                               // Use centralized calc logic for display
-                                              const status = calculateLoanStatus(a.amount, cost.date, cost.interestRate, a.payments || []);
+                                              const status = calculateLoanStatus(a.amount, cost.date, 0, a.payments || []);
                                               
-                                              const isFullyPaid = status.remainingPrincipal <= 0 && status.remainingInterest <= 0;
+                                              const isFullyPaid = status.remainingPrincipal <= 0;
 
                                               return (
                                                   <li key={a.userId} className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-slate-600 gap-1 sm:gap-0 pb-2 border-b border-slate-100 last:border-0 last:pb-0">
@@ -614,16 +585,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                                 formatCurrency(a.amount)
                                                               )}
                                                             </div>
-                                                            {isDebtor && !isFullyPaid && status.remainingInterest > 0 && (
-                                                                <div className="text-[10px] text-red-500">
-                                                                    + {formatCurrency(status.remainingInterest)} lãi ({status.daysSinceLastEvent} ngày)
-                                                                </div>
-                                                            )}
-                                                            {isDebtor && status.remainingInterest < 0 && (
-                                                                <div className="text-[10px] text-green-500 italic">
-                                                                   Dư lãi: {formatCurrency(Math.abs(status.remainingInterest))}
-                                                                </div>
-                                                            )}
                                                         </div>
                                                         
                                                         {isDebtor && (
@@ -637,7 +598,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                                         <button 
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                handleOpenPaymentConfirm(cost.id, a.userId, u?.name || 'Người dùng', a.amount, a.payments || [], cost.date, cost.interestRate);
+                                                                                handleOpenPaymentConfirm(cost.id, a.userId, u?.name || 'Người dùng', a.amount, a.payments || [], cost.date, 0);
                                                                             }}
                                                                             className="flex items-center gap-1 text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
                                                                         >
@@ -838,13 +799,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                {/* Calculation Details */}
                <div className="bg-slate-50 rounded-xl p-4 mb-4 space-y-4 text-sm border border-slate-100">
                   <div className="flex justify-between text-slate-500">
-                      <span>Dư nợ gốc hiện tại:</span>
+                      <span>Dư nợ hiện tại:</span>
                       <span>{formatCurrency(paymentDetails.remainingBeforePay)}</span>
                   </div>
                   
                   {/* PRINCIPAL INPUT */}
                   <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                     <span className="font-medium text-slate-700">Gốc trả đợt này:</span>
+                     <span className="font-medium text-slate-700">Số tiền trả:</span>
                      <div className="flex items-center gap-1">
                          <input 
                             type="text"
@@ -857,34 +818,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                          <span className="text-xs text-slate-400">₫</span>
                      </div>
                   </div>
-
-                  {/* INTEREST INPUT */}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-red-100 shadow-sm">
-                        <span className="font-medium text-slate-700">Lãi trả đợt này:</span>
-                        <div className="flex items-center gap-1">
-                            <input 
-                                type="text"
-                                inputMode="numeric"
-                                value={paymentInterestInput}
-                                onChange={handlePaymentInterestChange}
-                                className="w-28 text-right border-none focus:ring-0 outline-none font-bold text-red-600 bg-transparent text-lg"
-                                placeholder="0"
-                            />
-                            <span className="text-xs text-slate-400">₫</span>
-                        </div>
-                    </div>
-                    {paymentDetails.suggestedInterest > 0 ? (
-                        <div className="text-[10px] text-slate-400 text-right">
-                           *Gợi ý: {formatCurrency(paymentDetails.suggestedInterest)} (theo lãi suất {confirmPayment.interestRate}%)
-                        </div>
-                    ) : (
-                        <div className="text-[10px] text-green-500 text-right italic">
-                            Đã thanh toán hết lãi tính đến ngày này.
-                        </div>
-                    )}
-                  </div>
                   
+                  {/* Interest Input REMOVED */}
+
                   <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900">
                       <span>Tổng thực thu:</span>
                       <span>{formatCurrency(paymentDetails.totalPayment)}</span>
@@ -899,7 +835,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                     onChange={(e) => setPaymentDate(e.target.value)}
                     className="w-full border border-slate-300 rounded-lg px-3 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 bg-white"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Dùng để tính toán lãi suất gợi ý.</p>
                </div>
                
                <div className="flex justify-end gap-3">
@@ -907,7 +842,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                     onClick={() => {
                         setConfirmPayment(null);
                         setPaymentAmountInput('');
-                        setPaymentInterestInput('');
                     }}
                     className="px-4 py-3 text-slate-600 hover:bg-slate-100 rounded-xl font-medium text-sm transition-colors"
                   >
@@ -916,12 +850,10 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   <button
                     onClick={() => {
                        const amount = parseFormattedNumber(paymentAmountInput);
-                       const interest = parseFormattedNumber(paymentInterestInput);
-                       if(amount > 0 || interest > 0) {
-                           onMarkAsPaid(confirmPayment.costId, confirmPayment.debtorId, amount, interest, paymentDate);
+                       if(amount > 0) {
+                           onMarkAsPaid(confirmPayment.costId, confirmPayment.debtorId, amount, 0, paymentDate);
                            setConfirmPayment(null);
                            setPaymentAmountInput('');
-                           setPaymentInterestInput('');
                        }
                     }}
                     className="px-6 py-3 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-bold text-sm shadow-md transition-colors"

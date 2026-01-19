@@ -29,8 +29,7 @@ export default function App() {
   
   const [view, setView] = useState<'DASHBOARD' | 'TIMELINE' | 'ACTIVITY' | 'DISCUSSION'>('DASHBOARD');
   const [showPersonalReport, setShowPersonalReport] = useState(false);
-  const [defaultInterestRate, setDefaultInterestRate] = useState(DEFAULT_INTEREST_RATE_YEARLY);
-
+  
   // --- 1. Init Firebase on Mount ---
   useEffect(() => {
       const ready = tryInitFirebase();
@@ -164,13 +163,6 @@ export default function App() {
   };
 
   const handleUpdateStageName = async (id: string, name: string) => {
-    // This is called on every keystroke, React State handles the UI, 
-    // but here we are directly writing to DB. 
-    // For better performance with DB, typically we debouncing, 
-    // but for this simple app, direct update is okay if traffic is low.
-    // However, to avoid 'jumping' cursor issue when typing fast and waiting for DB sync,
-    // we might need a local state in the Timeline component or rely on Firestore latency compensation.
-    // Since Timeline component doesn't hold local state for edit, we just update DB.
     const db = getFirebaseDb();
     await updateDoc(doc(db, 'stages', id), { name });
   };
@@ -186,7 +178,7 @@ export default function App() {
     if (!stage) return;
 
     if (stage.paymentCallAmount) {
-         await updateDoc(doc(db, 'stages', id), { paymentCallAmount: 0 }); // Use 0 or delete field
+         await updateDoc(doc(db, 'stages', id), { paymentCallAmount: 0 }); 
     } else {
         const amountPerPerson = stage.budget > 0 ? Math.round(stage.budget / users.length) : 0;
         await updateDoc(doc(db, 'stages', id), { paymentCallAmount: amountPerPerson });
@@ -205,7 +197,8 @@ export default function App() {
       id: `c${Date.now()}`,
       createdAt: Date.now(),
       status: 'PENDING',
-      approvedBy: [currentUser.id]
+      approvedBy: [currentUser.id],
+      interestRate: 0 // FORCE 0 Interest
     };
     try {
         const db = getFirebaseDb();
@@ -240,7 +233,7 @@ export default function App() {
         const newPayment: Payment = {
           id: `p${Date.now()}`,
           amount: amount,
-          interest: interest,
+          interest: 0, // FORCE 0 Interest
           date: paidDate
         };
         const newPaidAmount = (a.paidAmount || 0) + amount;
@@ -258,8 +251,7 @@ export default function App() {
   };
 
   const handleUpdateDefaultSettings = (newRate: number) => {
-    setDefaultInterestRate(newRate);
-    // Ideally save this to a 'settings' collection in Firestore
+    // Interest is removed, so this does nothing or just updates local state
   };
 
   const handleAddTopic = async (title: string) => {
@@ -452,7 +444,7 @@ export default function App() {
             users={users}
             currentUser={currentUser}
             stages={stagesWithCalculatedCosts}
-            defaultInterestRate={defaultInterestRate}
+            defaultInterestRate={0} // Force 0
             onUpdateDefaultSettings={handleUpdateDefaultSettings}
             onAddCost={handleAddCost}
             onApproveCost={handleApproveCost}

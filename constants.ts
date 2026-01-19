@@ -9,7 +9,7 @@ export const INITIAL_USERS: User[] = [
 
 export const INITIAL_STAGES: Stage[] = [];
 
-export const DEFAULT_INTEREST_RATE_YEARLY = 10; // 10% per year
+export const DEFAULT_INTEREST_RATE_YEARLY = 0; // Set to 0 to disable interest logic
 
 // Start with empty costs
 export const INITIAL_COSTS: Cost[] = [];

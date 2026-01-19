@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Cost, User, Stage } from '../types';
 import { formatCurrency, formatDate } from '../utils/finance';
@@ -51,8 +52,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ costs, users, stages }
                 payDate.setHours(23, 59, 59);
 
                 const principal = payment.amount;
-                const interest = payment.interest || 0;
-                const totalPaid = principal + interest;
+                // Interest ignored
 
                 items.push({
                     id: `repay-${cost.id}-${allocation.userId}-${payment.id}`,
@@ -60,9 +60,9 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ costs, users, stages }
                     date: payDate,
                     actorId: allocation.userId, // Người trả (Con nợ)
                     targetId: cost.payerId, // Người nhận (Chủ nợ)
-                    amount: totalPaid,
+                    amount: principal,
                     description: `Hoàn trả: ${cost.description}`,
-                    subDescription: `Gốc: ${formatCurrency(principal)} • Lãi: ${formatCurrency(interest)}`
+                    subDescription: `Đã trả nợ gốc`
                 });
              });
         }
