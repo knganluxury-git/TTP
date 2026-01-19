@@ -27,13 +27,16 @@ export const tryInitFirebase = (): boolean => {
   if (app) return true;
 
   // 1. Try Environment Variables
+  // Fix: Safely access env, defaulting to empty object if undefined to prevent crash
+  const viteEnv = (import.meta as any).env || {};
+
   const envConfig = {
-    apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
-    authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: (import.meta as any).env.VITE_FIREBASE_APP_ID
+    apiKey: viteEnv.VITE_FIREBASE_API_KEY,
+    authDomain: viteEnv.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: viteEnv.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: viteEnv.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: viteEnv.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: viteEnv.VITE_FIREBASE_APP_ID
   };
 
   if (envConfig.apiKey && envConfig.projectId) {
