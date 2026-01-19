@@ -304,6 +304,7 @@ export default function App() {
       }));
   };
 
+  // 4. Main App Render Logic
   const renderContent = () => {
     // 1. Check if Firebase Config is missing
     if (!isFirebaseReady) {
@@ -335,62 +336,67 @@ export default function App() {
         );
     }
 
-    // 4. Main App
-    const MainView = () => {
-        switch (view) {
-          case 'TIMELINE':
-            return (
-              <Timeline 
-                stages={stagesWithCalculatedCosts} 
-                role={currentUser.role}
-                onUpdateStatus={handleUpdateStageStatus}
-                onUpdateStageDates={handleUpdateStageDates}
-                onUpdateStageName={handleUpdateStageName}
-                onUpdateStageBudget={handleUpdateStageBudget}
-                onTogglePaymentCall={handleTogglePaymentCall}
-                onDeleteStage={handleDeleteStage}
-                onAddStage={handleAddStage}
-              />
-            );
-          case 'ACTIVITY':
-            return (
-              <ActivityLog 
-                costs={costs}
-                users={users}
-                stages={stagesWithCalculatedCosts}
-              />
-            );
-          case 'DISCUSSION':
-            return (
-                <DiscussionBoard 
-                    users={users}
-                    currentUser={currentUser}
-                    topics={topics}
-                    onAddTopic={handleAddTopic}
-                    onVote={handleVote}
-                    onSpinDecision={handleSpinDecision}
-                    onAddComment={handleAddTopicComment}
-                    onToggleReadyToSpin={handleToggleReadyToSpin}
-                />
-            );
-          case 'DASHBOARD':
-          default:
-            return (
-              <FinancialDashboard 
-                costs={costs}
-                debts={debts}
+    // 4. Determine Active View Component
+    // FIX: Calculate content to render directly instead of defining a nested component
+    // to prevent unmounting and focus loss on re-renders.
+    let contentEl;
+    switch (view) {
+        case 'TIMELINE':
+        contentEl = (
+            <Timeline 
+            stages={stagesWithCalculatedCosts} 
+            role={currentUser.role}
+            onUpdateStatus={handleUpdateStageStatus}
+            onUpdateStageDates={handleUpdateStageDates}
+            onUpdateStageName={handleUpdateStageName}
+            onUpdateStageBudget={handleUpdateStageBudget}
+            onTogglePaymentCall={handleTogglePaymentCall}
+            onDeleteStage={handleDeleteStage}
+            onAddStage={handleAddStage}
+            />
+        );
+        break;
+        case 'ACTIVITY':
+        contentEl = (
+            <ActivityLog 
+            costs={costs}
+            users={users}
+            stages={stagesWithCalculatedCosts}
+            />
+        );
+        break;
+        case 'DISCUSSION':
+        contentEl = (
+            <DiscussionBoard 
                 users={users}
                 currentUser={currentUser}
-                stages={stagesWithCalculatedCosts}
-                defaultInterestRate={defaultInterestRate}
-                onUpdateDefaultSettings={handleUpdateDefaultSettings}
-                onAddCost={handleAddCost}
-                onApproveCost={handleApproveCost}
-                onMarkAsPaid={handlePayment}
-                onDismissPaymentCall={handleDismissPaymentCall}
-              />
-            );
-        }
+                topics={topics}
+                onAddTopic={handleAddTopic}
+                onVote={handleVote}
+                onSpinDecision={handleSpinDecision}
+                onAddComment={handleAddTopicComment}
+                onToggleReadyToSpin={handleToggleReadyToSpin}
+            />
+        );
+        break;
+        case 'DASHBOARD':
+        default:
+        contentEl = (
+            <FinancialDashboard 
+            costs={costs}
+            debts={debts}
+            users={users}
+            currentUser={currentUser}
+            stages={stagesWithCalculatedCosts}
+            defaultInterestRate={defaultInterestRate}
+            onUpdateDefaultSettings={handleUpdateDefaultSettings}
+            onAddCost={handleAddCost}
+            onApproveCost={handleApproveCost}
+            onMarkAsPaid={handlePayment}
+            onDismissPaymentCall={handleDismissPaymentCall}
+            />
+        );
+        break;
     }
 
     const NavButton = ({ active, onClick, icon: Icon, label }: any) => (
@@ -536,7 +542,7 @@ export default function App() {
                   </button>
                </div>
     
-               <MainView />
+               {contentEl}
             </div>
           </main>
     
