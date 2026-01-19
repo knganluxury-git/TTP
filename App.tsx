@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { INITIAL_USERS, INITIAL_STAGES, INITIAL_COSTS, DEFAULT_INTEREST_RATE_YEARLY, INITIAL_TOPICS } from './constants';
+import { INITIAL_USERS, DEFAULT_INTEREST_RATE_YEARLY } from './constants';
 import { User, Stage, Cost, DebtRecord, Role, StageStatus, Payment, Topic, TopicStatus, TopicComment } from './types';
 import { calculateDebts, formatCurrency } from './utils/finance';
 import { Timeline } from './components/Timeline';
@@ -9,10 +9,11 @@ import { ActivityLog } from './components/ActivityLog';
 import { PersonalReport } from './components/PersonalReport';
 import { DiscussionBoard } from './components/DiscussionBoard';
 import { Login } from './components/Login';
-import { FirebaseConfigModal } from './components/FirebaseConfigModal'; // New Import
+import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2, Settings2 } from 'lucide-react';
-import { tryInitFirebase, getFirebaseAuth, resetFirebaseConfig } from './firebaseConfig';
+import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 
 export default function App() {
   // --- Config & Auth State ---
@@ -22,9 +23,10 @@ export default function App() {
   
   // --- App Data State ---
   const [users] = useState<User[]>(INITIAL_USERS);
-  const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
-  const [costs, setCosts] = useState<Cost[]>(INITIAL_COSTS);
-  const [topics, setTopics] = useState<Topic[]>(INITIAL_TOPICS);
+  const [stages, setStages] = useState<Stage[]>([]); // Initialize empty, load from DB
+  const [costs, setCosts] = useState<Cost[]>([]);    // Initialize empty, load from DB
+  const [topics, setTopics] = useState<Topic[]>([]); // Initialize empty, load from DB
+  
   const [view, setView] = useState<'DASHBOARD' | 'TIMELINE' | 'ACTIVITY' | 'DISCUSSION'>('DASHBOARD');
   const [showPersonalReport, setShowPersonalReport] = useState(false);
   const [defaultInterestRate, setDefaultInterestRate] = useState(DEFAULT_INTEREST_RATE_YEARLY);
@@ -35,26 +37,23 @@ export default function App() {
       if (ready) {
           setIsFirebaseReady(true);
       } else {
-          // If not ready, stop initializing auth, show modal
           setInitializing(false);
           setIsFirebaseReady(false);
       }
   }, []);
 
-  // --- 2. Auth Listener (Only when Firebase is Ready) ---
+  // --- 2. Auth & Data Listeners ---
   useEffect(() => {
     if (!isFirebaseReady) return;
     
     setInitializing(true);
     const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Find mapped user in our constant list
         const appUser = INITIAL_USERS.find(u => u.email === firebaseUser.email);
         if (appUser) {
             setCurrentUser(appUser);
         } else {
-            console.warn("User logged in but not found in INITIAL_USERS:", firebaseUser.email);
             setCurrentUser(null); 
             alert("Tài khoản này chưa được cấu hình trong hệ thống TTP Home.");
             signOut(auth);
@@ -64,8 +63,41 @@ export default function App() {
       }
       setInitializing(false);
     });
-    return () => unsubscribe();
+
+    return () => unsubscribeAuth();
   }, [isFirebaseReady]);
+
+  // --- 3. Real-time Data Sync (Firestore) ---
+  useEffect(() => {
+    if (!isFirebaseReady || !currentUser) return;
+
+    const db = getFirebaseDb();
+
+    // Sync Stages
+    const unsubStages = onSnapshot(query(collection(db, 'stages'), orderBy('id')), (snapshot) => {
+        const data = snapshot.docs.map(doc => doc.data() as Stage);
+        // Sort specifically by ID or created date if needed, though orderBy above helps
+        setStages(data.sort((a,b) => a.id.localeCompare(b.id)));
+    });
+
+    // Sync Costs
+    const unsubCosts = onSnapshot(query(collection(db, 'costs'), orderBy('createdAt', 'desc')), (snapshot) => {
+        const data = snapshot.docs.map(doc => doc.data() as Cost);
+        setCosts(data);
+    });
+
+    // Sync Topics
+    const unsubTopics = onSnapshot(query(collection(db, 'topics'), orderBy('createdAt', 'desc')), (snapshot) => {
+        const data = snapshot.docs.map(doc => doc.data() as Topic);
+        setTopics(data);
+    });
+
+    return () => {
+        unsubStages();
+        unsubCosts();
+        unsubTopics();
+    };
+  }, [isFirebaseReady, currentUser]);
 
   const handleLogout = () => {
       const auth = getFirebaseAuth();
@@ -78,12 +110,11 @@ export default function App() {
       }
   };
 
-  // --- Derived State (Debts) ---
+  // --- Derived State ---
   const debts = useMemo(() => {
     return calculateDebts(costs, users);
   }, [costs, users]);
 
-  // --- Derived State (Stages with Total Cost) ---
   const stagesWithCalculatedCosts = useMemo(() => {
     return stages.map(stage => {
       const stageCosts = costs.filter(c => c.stageId === stage.id && c.status === 'APPROVED');
@@ -92,8 +123,9 @@ export default function App() {
     });
   }, [stages, costs]);
 
-  // --- Handlers (CRUD operations remain same) ---
-  const handleAddStage = () => {
+  // --- Firestore Handlers ---
+
+  const handleAddStage = async () => {
     const newStage: Stage = {
       id: `s${Date.now()}`,
       name: 'Giai đoạn mới',
@@ -103,45 +135,70 @@ export default function App() {
       totalCost: 0,
       budget: 0
     };
-    setStages([...stages, newStage]);
+    try {
+        const db = getFirebaseDb();
+        await setDoc(doc(db, 'stages', newStage.id), newStage);
+    } catch (error) {
+        console.error("Error adding stage:", error);
+    }
   };
 
-  const handleDeleteStage = (id: string) => {
-    setStages(stages.filter(s => s.id !== id));
+  const handleDeleteStage = async (id: string) => {
+    if(!window.confirm("Bạn có chắc chắn muốn xóa giai đoạn này?")) return;
+    try {
+        const db = getFirebaseDb();
+        await deleteDoc(doc(db, 'stages', id));
+    } catch (error) {
+        console.error("Error deleting stage:", error);
+    }
   };
 
-  const handleUpdateStageStatus = (id: string, status: StageStatus) => {
-    setStages(stages.map(s => s.id === id ? { ...s, status } : s));
+  const handleUpdateStageStatus = async (id: string, status: StageStatus) => {
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'stages', id), { status });
   };
 
-  const handleUpdateStageDates = (id: string, startDate: string, endDate: string) => {
-    setStages(stages.map(s => s.id === id ? { ...s, startDate, endDate } : s));
+  const handleUpdateStageDates = async (id: string, startDate: string, endDate: string) => {
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'stages', id), { startDate, endDate });
   };
 
-  const handleUpdateStageName = (id: string, name: string) => {
-    setStages(stages.map(s => s.id === id ? { ...s, name } : s));
+  const handleUpdateStageName = async (id: string, name: string) => {
+    // This is called on every keystroke, React State handles the UI, 
+    // but here we are directly writing to DB. 
+    // For better performance with DB, typically we debouncing, 
+    // but for this simple app, direct update is okay if traffic is low.
+    // However, to avoid 'jumping' cursor issue when typing fast and waiting for DB sync,
+    // we might need a local state in the Timeline component or rely on Firestore latency compensation.
+    // Since Timeline component doesn't hold local state for edit, we just update DB.
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'stages', id), { name });
   };
   
-  const handleUpdateStageBudget = (id: string, budget: number) => {
-      setStages(stages.map(s => s.id === id ? { ...s, budget } : s));
+  const handleUpdateStageBudget = async (id: string, budget: number) => {
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'stages', id), { budget });
   };
 
-  const handleTogglePaymentCall = (id: string) => {
-    setStages(stages.map(s => {
-        if (s.id !== id) return s;
-        if (s.paymentCallAmount) {
-            return { ...s, paymentCallAmount: undefined };
-        }
-        const amountPerPerson = s.budget > 0 ? Math.round(s.budget / users.length) : 0;
-        return { ...s, paymentCallAmount: amountPerPerson };
-    }));
+  const handleTogglePaymentCall = async (id: string) => {
+    const db = getFirebaseDb();
+    const stage = stages.find(s => s.id === id);
+    if (!stage) return;
+
+    if (stage.paymentCallAmount) {
+         await updateDoc(doc(db, 'stages', id), { paymentCallAmount: 0 }); // Use 0 or delete field
+    } else {
+        const amountPerPerson = stage.budget > 0 ? Math.round(stage.budget / users.length) : 0;
+        await updateDoc(doc(db, 'stages', id), { paymentCallAmount: amountPerPerson });
+    }
   };
   
-  const handleDismissPaymentCall = (id: string) => {
-    setStages(stages.map(s => s.id === id ? { ...s, paymentCallAmount: undefined } : s));
+  const handleDismissPaymentCall = async (id: string) => {
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'stages', id), { paymentCallAmount: 0 });
   };
 
-  const handleAddCost = (costData: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>) => {
+  const handleAddCost = async (costData: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>) => {
     if (!currentUser) return;
     const newCost: Cost = {
       ...costData,
@@ -150,55 +207,62 @@ export default function App() {
       status: 'PENDING',
       approvedBy: [currentUser.id]
     };
-    setCosts([newCost, ...costs]);
+    try {
+        const db = getFirebaseDb();
+        await setDoc(doc(db, 'costs', newCost.id), newCost);
+    } catch (e) {
+        console.error("Error adding cost", e);
+    }
   };
 
-  const handleApproveCost = (costId: string) => {
+  const handleApproveCost = async (costId: string) => {
     if (!currentUser) return;
-    setCosts(costs.map(c => {
-      if (c.id !== costId) return c;
-      if(c.approvedBy.includes(currentUser.id)) return c;
-      const newApprovals = [...c.approvedBy, currentUser.id];
-      const isFullyApproved = newApprovals.length >= users.length; 
-      return {
-        ...c,
+    const cost = costs.find(c => c.id === costId);
+    if (!cost) return;
+    if (cost.approvedBy.includes(currentUser.id)) return;
+
+    const newApprovals = [...cost.approvedBy, currentUser.id];
+    const isFullyApproved = newApprovals.length >= users.length;
+    
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'costs', costId), {
         approvedBy: newApprovals,
         status: isFullyApproved ? 'APPROVED' : 'PENDING'
-      };
-    }));
+    });
   };
 
-  const handlePayment = (costId: string, debtorId: string, amount: number, interest: number, paidDate: string) => {
-    setCosts(costs.map(c => {
-      if (c.id !== costId) return c;
-      return {
-        ...c,
-        allocations: c.allocations.map(a => {
-          if (a.userId !== debtorId) return a;
-          const newPayment: Payment = {
-            id: `p${Date.now()}`,
-            amount: amount,
-            interest: interest,
-            date: paidDate
-          };
-          const newPaidAmount = (a.paidAmount || 0) + amount;
-          const isPaid = newPaidAmount >= a.amount - 100;
-          return { 
-            ...a, 
-            paidAmount: newPaidAmount,
-            payments: [...(a.payments || []), newPayment],
-            isPaid: isPaid
-          };
-        })
-      };
-    }));
+  const handlePayment = async (costId: string, debtorId: string, amount: number, interest: number, paidDate: string) => {
+    const cost = costs.find(c => c.id === costId);
+    if (!cost) return;
+
+    const newAllocations = cost.allocations.map(a => {
+        if (a.userId !== debtorId) return a;
+        const newPayment: Payment = {
+          id: `p${Date.now()}`,
+          amount: amount,
+          interest: interest,
+          date: paidDate
+        };
+        const newPaidAmount = (a.paidAmount || 0) + amount;
+        const isPaid = newPaidAmount >= a.amount - 100;
+        return { 
+          ...a, 
+          paidAmount: newPaidAmount,
+          payments: [...(a.payments || []), newPayment],
+          isPaid: isPaid
+        };
+    });
+
+    const db = getFirebaseDb();
+    await updateDoc(doc(db, 'costs', costId), { allocations: newAllocations });
   };
 
   const handleUpdateDefaultSettings = (newRate: number) => {
     setDefaultInterestRate(newRate);
+    // Ideally save this to a 'settings' collection in Firestore
   };
 
-  const handleAddTopic = (title: string) => {
+  const handleAddTopic = async (title: string) => {
       if (!currentUser) return;
       const newTopic: Topic = {
           id: `t${Date.now()}`,
@@ -210,98 +274,100 @@ export default function App() {
           comments: [],
           readyToSpin: []
       };
-      setTopics([newTopic, ...topics]);
+      const db = getFirebaseDb();
+      await setDoc(doc(db, 'topics', newTopic.id), newTopic);
   };
 
-  const handleAddTopicComment = (topicId: string, content: string) => {
+  const handleAddTopicComment = async (topicId: string, content: string) => {
       if (!currentUser) return;
+      const topic = topics.find(t => t.id === topicId);
+      if(!topic) return;
+
       const newComment: TopicComment = {
           id: `cm${Date.now()}`,
           userId: currentUser.id,
           content,
           createdAt: Date.now()
       };
-      setTopics(prev => prev.map(t => {
-          if (t.id !== topicId) return t;
-          return {
-              ...t,
-              comments: [...(t.comments || []), newComment]
-          };
-      }));
+      const newComments = [...(topic.comments || []), newComment];
+      
+      const db = getFirebaseDb();
+      await updateDoc(doc(db, 'topics', topicId), { comments: newComments });
   };
 
-  const handleVote = (topicId: string, type: 'LIKE' | 'DISLIKE') => {
+  const handleVote = async (topicId: string, type: 'LIKE' | 'DISLIKE') => {
       if (!currentUser) return;
-      setTopics(prevTopics => prevTopics.map(topic => {
-          if (topic.id !== topicId) return topic;
-          if (topic.status !== TopicStatus.VOTING && topic.status !== TopicStatus.CONFLICT) return topic;
+      const topic = topics.find(t => t.id === topicId);
+      if (!topic) return;
+      if (topic.status !== TopicStatus.VOTING && topic.status !== TopicStatus.CONFLICT) return;
 
-          const existingVoteIndex = topic.votes.findIndex(v => v.userId === currentUser.id);
-          let newVotes = [...topic.votes];
-          
-          if (existingVoteIndex >= 0) {
-              newVotes[existingVoteIndex] = { userId: currentUser.id, type };
-          } else {
-              newVotes.push({ userId: currentUser.id, type });
-          }
+      const existingVoteIndex = topic.votes.findIndex(v => v.userId === currentUser.id);
+      let newVotes = [...topic.votes];
+      
+      if (existingVoteIndex >= 0) {
+          newVotes[existingVoteIndex] = { userId: currentUser.id, type };
+      } else {
+          newVotes.push({ userId: currentUser.id, type });
+      }
 
-          const totalUsers = users.length;
-          const likeCount = newVotes.filter(v => v.type === 'LIKE').length;
-          const dislikeCount = newVotes.filter(v => v.type === 'DISLIKE').length;
-          const totalVotes = newVotes.length;
-          
-          let newStatus = topic.status;
-          let finalMethod = topic.finalDecisionMethod;
+      // Calculate Status
+      const totalUsers = users.length;
+      const likeCount = newVotes.filter(v => v.type === 'LIKE').length;
+      const dislikeCount = newVotes.filter(v => v.type === 'DISLIKE').length;
+      const totalVotes = newVotes.length;
+      
+      let newStatus = topic.status;
+      let finalMethod = topic.finalDecisionMethod;
 
-          if (likeCount === totalUsers) {
-              newStatus = TopicStatus.APPROVED;
-              finalMethod = 'CONSENSUS';
-          }
-          else if (dislikeCount === totalUsers) {
-              newStatus = TopicStatus.REJECTED;
-          }
-          else if (totalVotes === totalUsers) {
-              newStatus = TopicStatus.CONFLICT;
-          }
-          else {
-              newStatus = TopicStatus.VOTING;
-          }
+      if (likeCount === totalUsers) {
+          newStatus = TopicStatus.APPROVED;
+          finalMethod = 'CONSENSUS';
+      }
+      else if (dislikeCount === totalUsers) {
+          newStatus = TopicStatus.REJECTED;
+      }
+      else if (totalVotes === totalUsers) {
+          newStatus = TopicStatus.CONFLICT;
+      }
+      else {
+          newStatus = TopicStatus.VOTING;
+      }
 
-          return {
-              ...topic,
-              votes: newVotes,
-              status: newStatus,
-              finalDecisionMethod: finalMethod
-          };
-      }));
+      const db = getFirebaseDb();
+      // Need to strip undefined if finalMethod is undefined (Firestore doesn't like undefined)
+      const updatePayload: any = {
+          votes: newVotes,
+          status: newStatus
+      };
+      if (finalMethod) updatePayload.finalDecisionMethod = finalMethod;
+
+      await updateDoc(doc(db, 'topics', topicId), updatePayload);
   };
 
-  const handleToggleReadyToSpin = (topicId: string) => {
+  const handleToggleReadyToSpin = async (topicId: string) => {
       if (!currentUser) return;
-      setTopics(prevTopics => prevTopics.map(topic => {
-          if (topic.id !== topicId) return topic;
-          
-          const isReady = topic.readyToSpin.includes(currentUser.id);
-          let newReadyList;
-          if (isReady) {
-              newReadyList = topic.readyToSpin.filter(id => id !== currentUser.id);
-          } else {
-              newReadyList = [...topic.readyToSpin, currentUser.id];
-          }
-          return { ...topic, readyToSpin: newReadyList };
-      }));
+      const topic = topics.find(t => t.id === topicId);
+      if (!topic) return;
+      
+      const isReady = topic.readyToSpin.includes(currentUser.id);
+      let newReadyList;
+      if (isReady) {
+          newReadyList = topic.readyToSpin.filter(id => id !== currentUser.id);
+      } else {
+          newReadyList = [...topic.readyToSpin, currentUser.id];
+      }
+      
+      const db = getFirebaseDb();
+      await updateDoc(doc(db, 'topics', topicId), { readyToSpin: newReadyList });
   };
 
-  const handleSpinDecision = (topicId: string, approved: boolean) => {
-      setTopics(prevTopics => prevTopics.map(topic => {
-          if (topic.id !== topicId) return topic;
-          return {
-              ...topic,
-              status: approved ? TopicStatus.APPROVED : TopicStatus.REJECTED,
-              finalDecisionMethod: 'RANDOM_SPIN',
-              readyToSpin: []
-          };
-      }));
+  const handleSpinDecision = async (topicId: string, approved: boolean) => {
+      const db = getFirebaseDb();
+      await updateDoc(doc(db, 'topics', topicId), {
+          status: approved ? TopicStatus.APPROVED : TopicStatus.REJECTED,
+          finalDecisionMethod: 'RANDOM_SPIN',
+          readyToSpin: []
+      });
   };
 
   // 4. Main App Render Logic
@@ -337,8 +403,6 @@ export default function App() {
     }
 
     // 4. Determine Active View Component
-    // FIX: Calculate content to render directly instead of defining a nested component
-    // to prevent unmounting and focus loss on re-renders.
     let contentEl;
     switch (view) {
         case 'TIMELINE':
