@@ -269,6 +269,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       const answer = await chatWithFinancialAssistant(
           userMsg.text, 
           context, 
+          currentUser, // Pass Current User Context here
           chatMessages.map(m => ({role: m.role, text: m.text}))
       );
 

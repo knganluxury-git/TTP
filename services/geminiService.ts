@@ -79,6 +79,7 @@ const prepareContextForAI = (context: FinancialContext) => {
 export const chatWithFinancialAssistant = async (
     userQuestion: string, 
     context: FinancialContext,
+    currentUser: User, // Added currentUser parameter
     chatHistory: {role: 'user' | 'model', text: string}[]
 ): Promise<string> => {
     const ai = getAIClient();
@@ -89,13 +90,23 @@ export const chatWithFinancialAssistant = async (
 
     const systemInstruction = `
     Bạn là Kế toán trưởng kiêm Trợ lý ảo cho dự án xây nhà 'HTTP Home'.
+    
+    --- THÔNG TIN NGƯỜI DÙNG HIỆN TẠI (CONTEXT) ---
+    Người đang trò chuyện với bạn là: **${currentUser.name}** (ID: ${currentUser.id}).
+    Vai trò: ${currentUser.role}.
+    
+    **QUY TẮC QUAN TRỌNG:**
+    Khi người dùng xưng hô "tôi", "mình", "của tôi", "em", "anh"... hãy hiểu là họ đang hỏi về dữ liệu của chính **${currentUser.name}**.
+    Ví dụ: Nếu họ hỏi "Tôi còn nợ bao nhiêu?", hãy tìm công nợ của **${currentUser.name}** để trả lời.
+    -----------------------------------------------
+
     Nhiệm vụ của bạn là trả lời các câu hỏi về tài chính, công nợ và tiến độ dựa trên DỮ LIỆU ĐƯỢC CUNG CẤP dưới đây.
 
     --- DỮ LIỆU DỰ ÁN (LIVE DATA) ---
     ${dataString}
     ---------------------------------
 
-    QUY TẮC BẮT BUỘC (TUÂN THỦ NGHIÊM NGẶT):
+    QUY TẮC TRẢ LỜI:
     1. **CHỈ** sử dụng thông tin từ phần "DỮ LIỆU DỰ ÁN" ở trên. KHÔNG được tự bịa ra số liệu.
     2. Nếu dữ liệu không có thông tin người dùng hỏi, hãy trả lời: "Dữ liệu hiện tại chưa có thông tin này" hoặc hỏi thêm chi tiết để người dùng làm rõ.
     3. Khi nói về tiền, luôn kèm đơn vị VND hoặc định dạng tiền tệ dễ đọc.
