@@ -194,18 +194,21 @@ export default function App() {
 
   const handleAddCost = async (costData: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>, files: File[]) => {
     if (!currentUser) return;
-    setIsUploading(true);
     
+    setIsUploading(true);
     const newId = `c${Date.now()}`;
     const attachments: Attachment[] = [];
 
     // 1. Upload files if any
-    if (files.length > 0) {
+    if (files && files.length > 0) {
       try {
         const storage = getFirebaseStorage();
         // Process files in parallel
         await Promise.all(files.map(async (file) => {
-          const storageRef = ref(storage, `costs/${newId}/${file.name}`);
+          // Unique path: costs/{costId}/{timestamp}_{filename}
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const storageRef = ref(storage, `costs/${newId}/${Date.now()}_${safeName}`);
+          
           const snapshot = await uploadBytes(storageRef, file);
           const downloadURL = await getDownloadURL(snapshot.ref);
           
@@ -219,9 +222,9 @@ export default function App() {
         }));
       } catch (error) {
         console.error("Error uploading files:", error);
-        alert("Lỗi khi tải file lên. Vui lòng thử lại.");
+        alert("Lỗi khi tải chứng từ. Vui lòng kiểm tra lại kết nối hoặc dung lượng file.");
         setIsUploading(false);
-        return; // Stop if upload fails
+        return; // Stop process if upload fails
       }
     }
 
@@ -508,9 +511,9 @@ export default function App() {
         <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative">
           {/* Global Loading Overlay (for Uploads) */}
           {isUploading && (
-              <div className="fixed inset-0 bg-black/60 z-[200] flex flex-col items-center justify-center text-white">
+              <div className="fixed inset-0 bg-black/60 z-[200] flex flex-col items-center justify-center text-white backdrop-blur-sm">
                   <Loader2 className="w-12 h-12 animate-spin mb-3 text-indigo-400" />
-                  <p className="font-bold text-lg">Đang tải tài liệu lên...</p>
+                  <p className="font-bold text-lg">Đang tải chứng từ lên...</p>
                   <p className="text-sm text-slate-300">Vui lòng không tắt trình duyệt.</p>
               </div>
           )}
