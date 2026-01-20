@@ -81,7 +81,7 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({ onSucc
         <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
                 <div className="bg-slate-800 p-6 flex items-center gap-4 text-white flex-shrink-0">
-                    <div className="p-3 bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/30">
+                    <div className="p-3 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/30">
                         <Settings className="w-6 h-6" />
                     </div>
                     <div>
@@ -112,7 +112,7 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({ onSucc
                                     <textarea 
                                         value={jsonInput}
                                         onChange={(e) => setJsonInput(e.target.value)}
-                                        className="w-full h-40 p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 resize-none shadow-inner"
+                                        className="w-full h-40 p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none text-slate-700 resize-none shadow-inner"
                                         placeholder={`const firebaseConfig = {
   apiKey: "AIzaSy...",
   authDomain: "project-id.firebaseapp.com",
@@ -136,7 +136,7 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({ onSucc
 
                                 <button 
                                     type="submit"
-                                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                                 >
                                     <Check className="w-5 h-5" /> Kết nối & Khởi động
                                 </button>
@@ -145,10 +145,10 @@ export const FirebaseConfigModal: React.FC<FirebaseConfigModalProps> = ({ onSucc
                     ) : (
                         <div className="space-y-4">
                              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <HelpCircle className="w-5 h-5 text-indigo-600" /> Cách lấy mã cấu hình
+                                <HelpCircle className="w-5 h-5 text-blue-600" /> Cách lấy mã cấu hình
                              </h3>
                              <ol className="list-decimal ml-5 space-y-3 text-sm text-slate-600">
-                                 <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold hover:underline">Firebase Console</a>.</li>
+                                 <li>Truy cập <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">Firebase Console</a>.</li>
                                  <li>Chọn Project của bạn (hoặc tạo mới).</li>
                                  <li>Bấm vào biểu tượng <strong>Bánh răng (Settings)</strong> &rarr; <strong>Project settings</strong>.</li>
                                  <li>Kéo xuống phần <strong>Your apps</strong>. Nếu chưa có, bấm vào icon <strong>Web (&lt;/&gt;)</strong> để tạo app mới.</li>

@@ -56,7 +56,7 @@ export default function App() {
             setCurrentUser(appUser);
         } else {
             setCurrentUser(null); 
-            alert("Tài khoản này chưa được cấu hình trong hệ thống TTP Home.");
+            alert("Tài khoản này chưa được cấu hình trong hệ thống TTHP Home.");
             signOut(auth);
         }
       } else {
@@ -451,7 +451,7 @@ export default function App() {
     if (initializing) {
         return (
             <div className="h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
             </div>
         )
     }
@@ -537,7 +537,7 @@ export default function App() {
     const NavButton = ({ active, onClick, icon: Icon, label }: any) => (
       <button 
         onClick={onClick}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors whitespace-nowrap ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors whitespace-nowrap ${active ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
       >
         <Icon className="w-5 h-5 flex-shrink-0" />
         <span className="font-medium">{label}</span>
@@ -549,7 +549,7 @@ export default function App() {
           {/* Global Loading Overlay (for Uploads) */}
           {isUploading && (
               <div className="fixed inset-0 bg-black/60 z-[200] flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                  <Loader2 className="w-12 h-12 animate-spin mb-3 text-indigo-400" />
+                  <Loader2 className="w-12 h-12 animate-spin mb-3 text-blue-400" />
                   <p className="font-bold text-lg">Đang tải chứng từ lên...</p>
                   <p className="text-sm text-slate-300">Vui lòng không tắt trình duyệt.</p>
               </div>
@@ -559,8 +559,8 @@ export default function App() {
           <header className="md:hidden bg-slate-900 text-white sticky top-0 z-30 shadow-md">
              <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-2">
-                   <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold">T</div>
-                   <h1 className="text-lg font-bold tracking-tight">TTP Home</h1>
+                   <img src="/logo.png" alt="TTHP Home" className="w-8 h-8 object-contain" />
+                   <h1 className="text-lg font-bold tracking-tight">TTHP Home</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-slate-800 rounded-full pl-3 pr-1 py-1 border border-slate-700">
@@ -574,32 +574,32 @@ export default function App() {
                     </button>
                 </div>
              </div>
-             {/* Mobile Nav Tabs */}
+             {/* Mobile Nav Tabs - Updated Active Color */}
              <nav className="flex px-4 pb-0 gap-1 overflow-x-auto no-scrollbar border-t border-slate-800">
                  <button 
                    onClick={() => setView('DASHBOARD')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DASHBOARD' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400'}`}
+                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DASHBOARD' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
                  >
                     <LayoutDashboard className="w-4 h-4" />
                     <span className="text-sm font-medium">Tài chính</span>
                  </button>
                  <button 
                    onClick={() => setView('TIMELINE')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'TIMELINE' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400'}`}
+                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'TIMELINE' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
                  >
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">Tiến độ</span>
                  </button>
                  <button 
                    onClick={() => setView('ACTIVITY')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'ACTIVITY' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400'}`}
+                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'ACTIVITY' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
                  >
                     <History className="w-4 h-4" />
                     <span className="text-sm font-medium">Nhật ký</span>
                  </button>
                  <button 
                    onClick={() => setView('DISCUSSION')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DISCUSSION' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-400'}`}
+                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DISCUSSION' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
                  >
                     <Users className="w-4 h-4" />
                     <span className="text-sm font-medium">Hội nghị</span>
@@ -609,9 +609,12 @@ export default function App() {
     
           {/* DESKTOP Sidebar */}
           <aside className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex-col h-screen sticky top-0 overflow-y-auto">
-            <div className="p-6">
-               <h1 className="text-2xl font-bold text-white tracking-tight">TTP Home</h1>
-               <p className="text-xs text-slate-500 mt-1">Quản lý dự án</p>
+            <div className="p-6 flex items-center gap-3">
+               <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain bg-white rounded-lg p-1" />
+               <div>
+                   <h1 className="text-2xl font-bold text-white tracking-tight">TTHP Home</h1>
+                   <p className="text-xs text-slate-500 mt-1">Quản lý dự án</p>
+               </div>
             </div>
     
             <nav className="flex-1 px-4 space-y-2">
@@ -624,7 +627,7 @@ export default function App() {
             {/* User Info Footer */}
             <div className="p-4 border-t border-slate-800">
                <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-slate-800/50">
-                   <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow-sm">
+                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow-sm">
                        {currentUser.avatar}
                    </div>
                    <div className="min-w-0">
@@ -666,7 +669,7 @@ export default function App() {
                
                <button 
                  onClick={() => setShowPersonalReport(true)}
-                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all"
+                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg transition-all"
                >
                  <FileText className="w-4 h-4" />
                  <span>Báo cáo cá nhân</span>
@@ -679,7 +682,7 @@ export default function App() {
                <div className="md:hidden mb-4">
                  <button 
                     onClick={() => setShowPersonalReport(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-indigo-100 text-indigo-600 rounded-xl shadow-sm font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-blue-100 text-blue-600 rounded-xl shadow-sm font-medium"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Xem báo cáo cá nhân của bạn</span>

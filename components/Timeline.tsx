@@ -60,7 +60,7 @@ const StageNameInput = ({ value, onUpdate, placeholder }: { value: string, onUpd
                     value={tempValue} 
                     onChange={(e) => setTempValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 min-w-0 font-bold text-slate-900 text-lg bg-white border border-indigo-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-100"
+                    className="flex-1 min-w-0 font-bold text-slate-900 text-lg bg-white border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-100"
                     placeholder={placeholder}
                 />
                 <button 
@@ -87,7 +87,7 @@ const StageNameInput = ({ value, onUpdate, placeholder }: { value: string, onUpd
             className="flex-1 min-w-0 group flex items-center gap-2 cursor-pointer py-1 px-1 -ml-1 border border-transparent hover:border-slate-200 hover:bg-slate-50/80 rounded transition-all"
         >
             <h3 className="font-bold text-slate-900 text-lg truncate">{value || placeholder}</h3>
-            <Pencil className="w-3.5 h-3.5 text-slate-400 opacity-50 group-hover:text-indigo-500 group-hover:opacity-100 transition-all flex-shrink-0" />
+            <Pencil className="w-3.5 h-3.5 text-slate-400 opacity-50 group-hover:text-blue-500 group-hover:opacity-100 transition-all flex-shrink-0" />
         </div>
     );
 };
@@ -149,7 +149,7 @@ const BudgetInput = ({ value, onUpdate }: { value: number, onUpdate: (val: numbe
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder="0"
-                    className="w-32 font-bold text-slate-900 text-right bg-white border border-indigo-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-100 text-sm"
+                    className="w-32 font-bold text-slate-900 text-right bg-white border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-100 text-sm"
                 />
                 <button 
                     onClick={handleSave} 
@@ -175,7 +175,7 @@ const BudgetInput = ({ value, onUpdate }: { value: number, onUpdate: (val: numbe
             <div className="font-bold text-slate-600 text-right">
                  {formatCurrency(value)}
             </div>
-            <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-indigo-500 transition-opacity" />
+            <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
         </div>
     );
 };
@@ -210,14 +210,14 @@ const StageDateRangeInput = ({ startDate, endDate, onUpdate }: { startDate: stri
                     type="date" 
                     value={tempStart}
                     onChange={(e) => setTempStart(e.target.value)}
-                    className="border border-indigo-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-indigo-100 outline-none"
+                    className="border border-blue-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-blue-100 outline-none"
                 />
                 <span className="text-slate-400">→</span>
                 <input 
                     type="date" 
                     value={tempEnd}
                     onChange={(e) => setTempEnd(e.target.value)}
-                    className="border border-indigo-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-indigo-100 outline-none"
+                    className="border border-blue-300 rounded px-2 py-1 text-xs text-slate-800 bg-white focus:ring-2 focus:ring-blue-100 outline-none"
                 />
                 <div className="flex gap-1 ml-1">
                     <button 
@@ -248,7 +248,7 @@ const StageDateRangeInput = ({ startDate, endDate, onUpdate }: { startDate: stri
             <span className={!startDate ? "text-slate-300 italic" : ""}>{formatDate(startDate) || "Bắt đầu"}</span>
             <span className="text-slate-300">→</span>
             <span className={!endDate ? "text-slate-300 italic" : ""}>{formatDate(endDate) || "Kết thúc"}</span>
-            <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-indigo-500 transition-opacity" />
+            <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity" />
         </div>
     );
 };
@@ -354,7 +354,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                                     <select 
                                         value={stage.status}
                                         onChange={(e) => onUpdateStatus(stage.id, e.target.value as StageStatus)}
-                                        className="text-xs border rounded px-2 py-1 bg-white cursor-pointer shadow-sm hover:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                        className="text-xs border rounded px-2 py-1 bg-white cursor-pointer shadow-sm hover:border-blue-300 focus:ring-2 focus:ring-blue-100 outline-none"
                                     >
                                     {Object.values(StageStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>

@@ -59,7 +59,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   // --- AI Chat State ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
+      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTHP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -299,7 +299,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       });
   }, [costs, users]);
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b'];
+  const COLORS = ['#2563eb', '#10b981', '#f59e0b']; // Updated to Blue/Emerald/Amber
 
   return (
     <div className="space-y-6 relative">
@@ -308,18 +308,18 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       {paymentCallStages.length > 0 && (
           <div className="space-y-3">
               {paymentCallStages.map(stage => (
-                  <div key={stage.id} className="p-5 rounded-xl border border-indigo-200 bg-indigo-50 shadow-md relative animate-in slide-in-from-top-2">
+                  <div key={stage.id} className="p-5 rounded-xl border border-blue-200 bg-blue-50 shadow-md relative animate-in slide-in-from-top-2">
                       <div className="flex items-start gap-4">
-                          <div className="p-3 bg-white rounded-full text-indigo-600 shadow-sm mt-1">
+                          <div className="p-3 bg-white rounded-full text-blue-600 shadow-sm mt-1">
                               <Bell className="w-6 h-6 animate-pulse" />
                           </div>
                           <div className="flex-1">
-                              <h3 className="font-bold text-lg text-indigo-900 flex items-center gap-2 mb-2">
+                              <h3 className="font-bold text-lg text-blue-900 flex items-center gap-2 mb-2">
                                 🔔 Thông báo chuẩn bị tài chính
                               </h3>
-                              <div className="text-indigo-900 text-sm sm:text-base leading-relaxed space-y-2">
+                              <div className="text-blue-900 text-sm sm:text-base leading-relaxed space-y-2">
                                   <p>
-                                    Ngày <span className="font-bold bg-white px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm text-indigo-700">{formatDate(stage.startDate)}</span> tới giai đoạn <span className="font-bold uppercase">{stage.name}</span>, 
+                                    Ngày <span className="font-bold bg-white px-1.5 py-0.5 rounded border border-blue-100 shadow-sm text-blue-700">{formatDate(stage.startDate)}</span> tới giai đoạn <span className="font-bold uppercase">{stage.name}</span>, 
                                     dự kiến tốn <span className="font-bold">{formatCurrency(stage.budget)}</span>.
                                   </p>
                                   <p>
@@ -330,7 +330,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           {currentUser.role === Role.ADMIN && (
                               <button 
                                 onClick={() => onDismissPaymentCall(stage.id)}
-                                className="text-indigo-300 hover:text-indigo-600 p-1.5 hover:bg-indigo-100 rounded transition-colors"
+                                className="text-blue-300 hover:text-blue-600 p-1.5 hover:bg-blue-100 rounded transition-colors"
                               >
                                   <X className="w-5 h-5" />
                               </button>
@@ -372,7 +372,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
             return (
               <div key={u.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
                         {u.avatar}
                     </div>
                     <div>
@@ -408,7 +408,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
              <h2 className="text-lg font-bold text-slate-800">Giao dịch & Bỏ phiếu</h2>
              {currentUser.role === Role.ADMIN && (
-                <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-sm">
+                <button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-sm">
                     <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Thêm chi phí</span>
                 </button>
              )}
@@ -462,9 +462,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           <label className="block text-xs font-medium text-slate-500 mb-1">Đính kèm chứng từ (Hóa đơn, Ảnh, Hợp đồng)</label>
                           <div className="flex flex-wrap gap-2 mb-2">
                               {selectedFiles.map((file, idx) => (
-                                  <div key={idx} className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs">
+                                  <div key={idx} className="flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs">
                                       <span className="truncate max-w-[150px]">{file.name}</span>
-                                      <button type="button" onClick={() => removeFile(idx)} className="text-indigo-400 hover:text-indigo-900">
+                                      <button type="button" onClick={() => removeFile(idx)} className="text-blue-400 hover:text-blue-900">
                                           <X className="w-3 h-3" />
                                       </button>
                                   </div>
@@ -492,11 +492,11 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                          <label className="block text-xs font-medium text-slate-500 mb-1">Phân bổ</label>
                          <div className="flex gap-4 p-1">
                             <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" checked={allocType === 'EQUAL'} onChange={() => setAllocType('EQUAL')} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500" /> 
+                                <input type="radio" checked={allocType === 'EQUAL'} onChange={() => setAllocType('EQUAL')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" /> 
                                 <span className="text-sm">Chia đều (33%)</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" checked={allocType === 'CUSTOM'} onChange={() => setAllocType('CUSTOM')} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500" /> 
+                                <input type="radio" checked={allocType === 'CUSTOM'} onChange={() => setAllocType('CUSTOM')} className="w-4 h-4 text-blue-600 focus:ring-blue-500" /> 
                                 <span className="text-sm">Tùy chỉnh</span>
                             </label>
                          </div>
@@ -525,7 +525,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
                    <div className="flex justify-end gap-3 pt-2">
                       <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-slate-600 text-sm hover:bg-slate-200 rounded-lg transition-colors">Hủy</button>
-                      <button type="submit" disabled={stages.length === 0} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      <button type="submit" disabled={stages.length === 0} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                           {stages.length === 0 ? 'Cần tạo giai đoạn trước' : 'Lưu chi phí'}
                       </button>
                    </div>
@@ -570,7 +570,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                        <span className="truncate max-w-[120px] sm:max-w-none">{stageName}</span>
                                     </div>
                                     <div className="text-xs text-slate-500 mt-0.5 truncate">
-                                       Chi bởi <span className="font-semibold text-indigo-600">{payerName}</span>
+                                       Chi bởi <span className="font-semibold text-blue-600">{payerName}</span>
                                     </div>
                                 </div>
                              </div>
@@ -607,14 +607,14 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                       href={att.url} 
                                                       target="_blank" 
                                                       rel="noreferrer"
-                                                      className="group relative flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all text-center gap-1 overflow-hidden"
+                                                      className="group relative flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all text-center gap-1 overflow-hidden"
                                                   >
                                                       {isImage ? (
                                                           <div className="w-full h-16 bg-slate-100 rounded mb-1 overflow-hidden">
                                                               <img src={att.url} alt={att.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                                                           </div>
                                                       ) : (
-                                                          <FileText className="w-8 h-8 text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors" />
+                                                          <FileText className="w-8 h-8 text-slate-400 mb-1 group-hover:text-blue-500 transition-colors" />
                                                       )}
                                                       <span className="text-[10px] text-slate-600 truncate w-full px-1">{att.name}</span>
                                                   </a>
@@ -623,7 +623,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           
                                           {/* Add File Button - Only for payer or admin */}
                                           {(currentUser.id === cost.payerId || currentUser.role === Role.ADMIN) && (
-                                              <label className="cursor-pointer group flex flex-col items-center justify-center p-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-400 transition-all text-center gap-1 h-[100px]">
+                                              <label className="cursor-pointer group flex flex-col items-center justify-center p-2 rounded-lg border border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:border-blue-400 transition-all text-center gap-1 h-[100px]">
                                                   <input 
                                                     type="file" 
                                                     multiple 
@@ -634,10 +634,10 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                         }
                                                     }}
                                                   />
-                                                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                                                      <Plus className="w-4 h-4 text-indigo-600" />
+                                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                                                      <Plus className="w-4 h-4 text-blue-600" />
                                                   </div>
-                                                  <span className="text-[10px] text-indigo-600 font-medium">Thêm chứng từ</span>
+                                                  <span className="text-[10px] text-blue-600 font-medium">Thêm chứng từ</span>
                                               </label>
                                           )}
                                       </div>
@@ -715,7 +715,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                                                 e.stopPropagation();
                                                                                 handleOpenPaymentConfirm(cost.id, a.userId, u?.name || 'Người dùng', a.amount, a.payments || [], cost.date, 0);
                                                                             }}
-                                                                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg shadow-sm transition-colors"
+                                                                            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
                                                                         >
                                                                             <DollarSign className="w-3 h-3" /> Thu tiền
                                                                         </button>
@@ -760,7 +760,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
         <div className="space-y-6 order-1 lg:order-2">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                <div className="flex items-center gap-2 mb-2">
-                 <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                 <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                    <TrendingUp className="w-5 h-5" />
                  </div>
                  <h3 className="text-sm font-bold text-slate-500 uppercase">Tổng chi phí dự án</h3>
@@ -805,7 +805,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       <div className="fixed bottom-6 right-6 z-40 print:hidden">
           <button 
               onClick={() => setIsChatOpen(!isChatOpen)}
-              className={`p-4 rounded-full shadow-xl transition-all duration-300 flex items-center justify-center ${isChatOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:scale-110'}`}
+              // Updated Gradient to match Logo (Blue -> Emerald)
+              className={`p-4 rounded-full shadow-xl transition-all duration-300 flex items-center justify-center ${isChatOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-gradient-to-r from-blue-600 to-emerald-500 text-white hover:scale-110'}`}
           >
               {isChatOpen ? <X className="w-6 h-6" /> : <Sparkles className="w-6 h-6 animate-pulse" />}
           </button>
@@ -815,7 +816,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       {isChatOpen && (
           <div className="fixed bottom-24 right-6 w-full max-w-[350px] sm:max-w-[400px] h-[500px] max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-40 overflow-hidden animate-in slide-in-from-bottom-5 fade-in zoom-in-95 origin-bottom-right">
               {/* Header */}
-              <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 flex justify-between items-center text-white shrink-0">
+              <div className="bg-gradient-to-r from-blue-600 to-emerald-600 p-4 flex justify-between items-center text-white shrink-0">
                   <div className="flex items-center gap-2">
                         <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
                           <Bot className="w-5 h-5 text-yellow-300" />
@@ -825,15 +826,15 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="relative flex h-2 w-2">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
                                 </span>
-                                <p className="text-[10px] text-indigo-100 opacity-90">Online</p>
+                                <p className="text-[10px] text-blue-100 opacity-90">Online</p>
                           </div>
                       </div>
                   </div>
                   <div className="flex gap-2">
                         <button 
-                            onClick={() => setChatMessages([{ id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }])} 
+                            onClick={() => setChatMessages([{ id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTHP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }])} 
                             className="p-1.5 hover:bg-white/20 rounded-lg transition"
                             title="Làm mới đoạn chat"
                         >
@@ -852,7 +853,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                   {chatMessages.map((msg) => (
                       <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-indigo-600' : 'bg-violet-600'}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold shadow-sm ${msg.role === 'user' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
                               {msg.role === 'user' ? <UserIcon className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                           </div>
                           <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${msg.role === 'user' ? 'bg-white text-slate-800 rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}`}>
@@ -865,7 +866,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   ))}
                   {isTyping && (
                       <div className="flex gap-3">
-                            <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
+                            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 text-white shadow-sm">
                               <Bot className="w-4 h-4" />
                           </div>
                           <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-1">
@@ -886,13 +887,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           placeholder="Hỏi về tiền nong..." 
-                          className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-10 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all placeholder:text-slate-400"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-10 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                           disabled={isTyping}
                       />
                       <button 
                           type="submit" 
                           disabled={!chatInput.trim() || isTyping}
-                          className="absolute right-1.5 p-1.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="absolute right-1.5 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-sm"
                       >
                           <Send className="w-4 h-4" />
                       </button>
@@ -919,7 +920,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   </div>
                   
                   {/* PRINCIPAL INPUT */}
-                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
                      <span className="font-medium text-slate-700">Số tiền trả:</span>
                      <div className="flex flex-col items-end">
                          <div className="flex items-center gap-1">
@@ -927,7 +928,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                 type="number"
                                 value={paymentAmountInput}
                                 onChange={(e) => setPaymentAmountInput(e.target.value)}
-                                className="w-32 text-right border-none focus:ring-0 outline-none font-bold text-indigo-700 bg-transparent text-lg"
+                                className="w-32 text-right border-none focus:ring-0 outline-none font-bold text-blue-700 bg-transparent text-lg"
                                 placeholder="0"
                             />
                             <span className="text-xs text-slate-400">₫</span>
@@ -952,7 +953,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                     type="date"
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-3 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 bg-white"
+                    className="w-full border border-slate-300 rounded-lg px-3 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-slate-700 bg-white"
                   />
                </div>
                
@@ -975,7 +976,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                            setPaymentAmountInput('');
                        }
                     }}
-                    className="px-6 py-3 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl font-bold text-sm shadow-md transition-colors"
+                    className="px-6 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-xl font-bold text-sm shadow-md transition-colors"
                   >
                     Xác nhận
                   </button>

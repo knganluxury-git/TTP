@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Cost, User, Stage } from '../types';
 import { formatCurrency, formatDate } from '../utils/finance';
@@ -144,7 +145,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ costs, users, stages }
       <div className="p-4 border-b border-slate-100 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-indigo-600" />
+                <CalendarDays className="w-5 h-5 text-blue-600" />
                 Nhật ký
             </h2>
             <div className="text-xs text-slate-400 font-medium">
@@ -191,7 +192,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ costs, users, stages }
                   <button
                     key={u.id}
                     onClick={() => setFilterUser(filterUser === u.id ? 'ALL' : u.id)}
-                    className={`flex-shrink-0 pl-1 pr-3 py-1 rounded-full text-xs font-bold transition-colors border flex items-center gap-1.5 ${filterUser === u.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`}
+                    className={`flex-shrink-0 pl-1 pr-3 py-1 rounded-full text-xs font-bold transition-colors border flex items-center gap-1.5 ${filterUser === u.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}
                   >
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] ${filterUser === u.id ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
                           {u.avatar}

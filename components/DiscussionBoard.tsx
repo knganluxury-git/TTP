@@ -148,13 +148,13 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-             <Users className="w-6 h-6 text-indigo-600" /> Hội nghị bàn tròn
+             <Users className="w-6 h-6 text-blue-600" /> Hội nghị bàn tròn
            </h2>
            <p className="text-slate-500 text-sm mt-1">Nơi thảo luận, biểu quyết và ban hành quy tắc chung.</p>
         </div>
         <button 
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium shadow-md hover:bg-indigo-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium shadow-md hover:bg-blue-700 transition"
         >
             <Plus className="w-4 h-4" /> Đề xuất mới
         </button>
@@ -277,7 +277,7 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
                                   )}
                                   {topic.comments?.map(comment => (
                                       <div key={comment.id} className="flex gap-2 text-sm">
-                                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${comment.userId === currentUser.id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
+                                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${comment.userId === currentUser.id ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}`}>
                                               {getUser(comment.userId)?.avatar}
                                           </div>
                                           <div>
@@ -299,12 +299,12 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
                                     onChange={e => setCommentInputs(prev => ({...prev, [topic.id]: e.target.value}))}
                                     onKeyDown={e => e.key === 'Enter' && handleSendComment(topic.id)}
                                     placeholder="Thảo luận..."
-                                    className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-indigo-500"
+                                    className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-blue-500"
                                   />
                                   <button 
                                     onClick={() => handleSendComment(topic.id)}
                                     disabled={!commentInputs[topic.id]?.trim()}
-                                    className="p-1.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition"
+                                    className="p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition"
                                   >
                                       <Send className="w-4 h-4" />
                                   </button>
@@ -365,7 +365,7 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
                   <h3 className="text-lg font-bold text-slate-800 mb-4">Đề xuất chủ đề mới</h3>
                   <form onSubmit={handleCreateSubmit}>
                       <textarea 
-                        className="w-full border border-slate-300 rounded-lg p-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-32"
+                        className="w-full border border-slate-300 rounded-lg p-3 text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32"
                         placeholder="Nhập nội dung quy định hoặc chủ đề thảo luận..."
                         value={newTopicTitle}
                         onChange={e => setNewTopicTitle(e.target.value)}
@@ -373,7 +373,7 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
                       />
                       <div className="flex justify-end gap-3 mt-4">
                           <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg transition">Hủy</button>
-                          <button type="submit" disabled={!newTopicTitle.trim()} className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">Tạo đề xuất</button>
+                          <button type="submit" disabled={!newTopicTitle.trim()} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">Tạo đề xuất</button>
                       </div>
                   </form>
               </div>
@@ -544,9 +544,3 @@ export const DiscussionBoard: React.FC<DiscussionBoardProps> = ({
     </div>
   );
 };
-
-function Clock(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-  )
-}

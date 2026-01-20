@@ -1,5 +1,5 @@
 {
-  "name": "Quản lý Nhà TTP",
-  "description": "Công cụ quản lý tài chính và tiến độ toàn diện cho dự án Nhà TTP. Theo dõi các giai đoạn xây dựng, quản lý chi phí chia sẻ với phân bổ linh hoạt và tự động tính toán nợ nội bộ cùng lãi suất.",
+  "name": "Quản lý Nhà TTHP",
+  "description": "Công cụ quản lý tài chính và tiến độ toàn diện cho dự án Nhà TTHP. Theo dõi các giai đoạn xây dựng, quản lý chi phí chia sẻ với phân bổ linh hoạt và tự động tính toán nợ nội bộ cùng lãi suất.",
   "requestFramePermissions": []
 }
