@@ -122,11 +122,14 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
         paymentDate // Target date for calculation
     );
     
-    const remainingAfterPay = Math.max(0, status.remainingPrincipal - amountToPay);
+    // FIX: Round the remaining principal to ensure integer display
+    // This handles cases where legacy data might have decimals
+    const remainingBeforePay = Math.round(status.remainingPrincipal);
+    const remainingAfterPay = Math.max(0, remainingBeforePay - amountToPay);
 
     return {
         principal: amountToPay,
-        remainingBeforePay: status.remainingPrincipal,
+        remainingBeforePay: remainingBeforePay,
         totalPayment: amountToPay, // No Interest
         remainingAfterPay,
         days: status.daysSinceLastEvent
@@ -157,8 +160,29 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
     let allocations = [];
     if (allocType === 'EQUAL') {
-       const share = numAmount / users.length;
-       allocations = users.map(u => ({ userId: u.id, amount: share, percentage: (100/users.length), paidAmount: 0, payments: [], isPaid: false }));
+       // INTEGER MATH LOGIC:
+       // 1. Calculate floor share per person
+       // 2. Give the remainder to the payer to absorb
+       const totalUsers = users.length;
+       const baseShare = Math.floor(numAmount / totalUsers);
+       const remainder = numAmount - (baseShare * totalUsers);
+
+       allocations = users.map(u => {
+           let myShare = baseShare;
+           // If I am the payer, I absorb the remainder so the total is exact
+           if (u.id === payerId) {
+               myShare += remainder;
+           }
+           
+           return { 
+               userId: u.id, 
+               amount: myShare, 
+               percentage: (myShare / numAmount) * 100, 
+               paidAmount: 0, 
+               payments: [], 
+               isPaid: false 
+           };
+       });
     } else {
        allocations = users.map(u => {
          const val = parseInt(customAmounts[u.id] || '0', 10);
@@ -207,7 +231,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
           interestRate: 0
       });
       
-      setPaymentAmountInput(status.remainingPrincipal.toString());
+      // Pre-fill with integer value
+      setPaymentAmountInput(Math.round(status.remainingPrincipal).toString());
   };
 
   // --- AI HANDLER ---
@@ -754,7 +779,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           placeholder="Hỏi về tiền nong..." 
-                          className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all placeholder:text-slate-400"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-full pl-4 pr-10 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all placeholder:text-slate-400"
                           disabled={isTyping}
                       />
                       <button 

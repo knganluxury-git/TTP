@@ -4,26 +4,29 @@ import { Cost, Stage, DebtRecord, User } from "../types";
 import { formatCurrency, formatDate } from "../utils/finance";
 
 const getAIClient = () => {
-    // FIX: Browser crash due to 'process is not defined'.
-    // In Vite, we use import.meta.env.
-    // We check both methods to support different build environments safely.
     let apiKey = "";
+    
+    // 1. Try checking Vite environment variables (Standard approach)
     try {
-        // Safe access for Vite
         const env = (import.meta as any).env;
-        if (env && env.API_KEY) {
-            apiKey = env.API_KEY;
-        } else if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-            apiKey = process.env.API_KEY;
+        if (env) {
+            // Prioritize VITE_API_KEY as it's the standard for exposed vars in Vite
+            apiKey = env.VITE_API_KEY || env.API_KEY || "";
         }
     } catch (e) {
-        console.warn("Could not read environment variables safely.");
+        // Ignore error if import.meta is not available
+    }
+
+    // 2. Fallback to process.env (Node/Webpack environments) if not found yet
+    if (!apiKey && typeof process !== 'undefined' && process.env) {
+        apiKey = process.env.API_KEY || process.env.VITE_API_KEY || "";
     }
 
     if (!apiKey) {
-        console.error("API Key not found in environment");
+        console.error("Gemini API Key not found. Please set VITE_API_KEY in your .env file.");
         return null;
     }
+    
     return new GoogleGenAI({ apiKey });
 };
 
@@ -79,7 +82,7 @@ export const chatWithFinancialAssistant = async (
     chatHistory: {role: 'user' | 'model', text: string}[]
 ): Promise<string> => {
     const ai = getAIClient();
-    if (!ai) return "Lỗi: Thiếu API Key hoặc cấu hình chưa đúng. Vui lòng kiểm tra file .env";
+    if (!ai) return "Lỗi: Thiếu API Key. Vui lòng tạo file .env và thêm VITE_API_KEY=... vào thư mục gốc.";
 
     const cleanData = prepareContextForAI(context);
     const dataString = JSON.stringify(cleanData, null, 2);
@@ -131,6 +134,6 @@ export const chatWithFinancialAssistant = async (
         return response.text || "Xin lỗi, tôi không thể phân tích dữ liệu lúc này.";
     } catch (error) {
         console.error("Gemini Error:", error);
-        return "Đã xảy ra lỗi kết nối với trợ lý AI.";
+        return "Đã xảy ra lỗi kết nối với trợ lý AI. (Kiểm tra API Key hoặc mạng)";
     }
 };
