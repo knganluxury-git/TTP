@@ -88,7 +88,7 @@ export const chatWithFinancialAssistant = async (
     const dataString = JSON.stringify(cleanData, null, 2);
 
     const systemInstruction = `
-    Bạn là Kế toán trưởng kiêm Trợ lý ảo cho dự án xây nhà 'TTHP Home'.
+    Bạn là Kế toán trưởng kiêm Trợ lý ảo cho dự án xây nhà 'HTTP Home'.
     Nhiệm vụ của bạn là trả lời các câu hỏi về tài chính, công nợ và tiến độ dựa trên DỮ LIỆU ĐƯỢC CUNG CẤP dưới đây.
 
     --- DỮ LIỆU DỰ ÁN (LIVE DATA) ---

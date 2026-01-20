@@ -59,7 +59,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   // --- AI Chat State ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTHP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
+      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của HTTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -834,7 +834,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   </div>
                   <div className="flex gap-2">
                         <button 
-                            onClick={() => setChatMessages([{ id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của TTHP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }])} 
+                            onClick={() => setChatMessages([{ id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của HTTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }])} 
                             className="p-1.5 hover:bg-white/20 rounded-lg transition"
                             title="Làm mới đoạn chat"
                         >

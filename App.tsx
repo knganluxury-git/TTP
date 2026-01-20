@@ -56,7 +56,7 @@ export default function App() {
             setCurrentUser(appUser);
         } else {
             setCurrentUser(null); 
-            alert("Tài khoản này chưa được cấu hình trong hệ thống TTHP Home.");
+            alert("Tài khoản này chưa được cấu hình trong hệ thống HTTP Home.");
             signOut(auth);
         }
       } else {
@@ -559,8 +559,8 @@ export default function App() {
           <header className="md:hidden bg-slate-900 text-white sticky top-0 z-30 shadow-md">
              <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-2">
-                   <img src="/logo.png" alt="TTHP Home" className="w-8 h-8 object-contain" />
-                   <h1 className="text-lg font-bold tracking-tight">TTHP Home</h1>
+                   <img src="/logo.png" alt="HTTP Home" className="w-8 h-8 object-contain" />
+                   <h1 className="text-lg font-bold tracking-tight">HTTP Home</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-slate-800 rounded-full pl-3 pr-1 py-1 border border-slate-700">
@@ -612,7 +612,7 @@ export default function App() {
             <div className="p-6 flex items-center gap-3">
                <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain bg-white rounded-lg p-1" />
                <div>
-                   <h1 className="text-2xl font-bold text-white tracking-tight">TTHP Home</h1>
+                   <h1 className="text-2xl font-bold text-white tracking-tight">HTTP Home</h1>
                    <p className="text-xs text-slate-500 mt-1">Quản lý dự án</p>
                </div>
             </div>
