@@ -75,7 +75,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       interestRate: number;
   } | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [paymentAmountInput, setPaymentAmountInput] = useState(''); // Stores Raw String now
 
   // Auto scroll chat
   useEffect(() => {
@@ -106,25 +106,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     return list;
   }, [costs, currentUser.id]);
 
-  // --- Helpers for Input Formatting ---
-  const formatNumberInput = (value: string) => {
-    const rawValue = value.replace(/[^0-9]/g, '');
-    if (!rawValue) return '';
-    return new Intl.NumberFormat('vi-VN').format(parseInt(rawValue, 10));
-  };
-
-  const parseFormattedNumber = (value: string) => {
-    // Remove dots (thousand separators) and parse integer
-    const rawValue = value.replace(/\./g, '');
-    return parseInt(rawValue || '0', 10);
-  };
-
   // Derived state for Modal Interest Calculation
   const paymentDetails = useMemo(() => {
     if (!confirmPayment) return { principal: 0, interest: 0, total: 0, days: 0, remainingAfterPay: 0 };
     
-    // The user inputs how much Principal they want to pay off
-    const amountToPay = parseFormattedNumber(paymentAmountInput);
+    // Parse raw input directly
+    const amountToPay = parseInt(paymentAmountInput || '0', 10);
     
     // RE-CALCULATE status based on the selected Payment Date
     const status = calculateLoanStatus(
@@ -148,12 +135,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
   // Form State
   const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(''); // Raw String
   const [stageId, setStageId] = useState(stages[0]?.id || '');
   const [payerId, setPayerId] = useState(currentUser.id);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [allocType, setAllocType] = useState<'EQUAL' | 'CUSTOM'>('EQUAL');
-  const [customAmounts, setCustomAmounts] = useState<{[key:string]: string}>({});
+  const [customAmounts, setCustomAmounts] = useState<{[key:string]: string}>({}); // Raw Strings
 
   // Auto-select first stage if none selected (useful when starting with 0 stages then adding one)
   useEffect(() => {
@@ -162,24 +149,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     }
   }, [stages, stageId]);
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAmount(formatNumberInput(e.target.value));
-  };
-
-  const handleCustomAmountChange = (userId: string, val: string) => {
-    setCustomAmounts(prev => ({
-        ...prev,
-        [userId]: formatNumberInput(val)
-    }));
-  };
-  
-  const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPaymentAmountInput(formatNumberInput(e.target.value));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = parseFormattedNumber(amount);
+    const numAmount = parseInt(amount || '0', 10);
     
     if (!description || !numAmount || !stageId) return;
 
@@ -189,7 +161,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
        allocations = users.map(u => ({ userId: u.id, amount: share, percentage: (100/users.length), paidAmount: 0, payments: [], isPaid: false }));
     } else {
        allocations = users.map(u => {
-         const val = parseFormattedNumber(customAmounts[u.id] || '0');
+         const val = parseInt(customAmounts[u.id] || '0', 10);
          return { userId: u.id, amount: val, percentage: (val/numAmount)*100, paidAmount: 0, payments: [], isPaid: false };
        });
     }
@@ -235,7 +207,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
           interestRate: 0
       });
       
-      setPaymentAmountInput(formatNumberInput(status.remainingPrincipal.toString()));
+      setPaymentAmountInput(status.remainingPrincipal.toString());
   };
 
   // --- AI HANDLER ---
@@ -410,15 +382,19 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Số tiền (VND)</label>
-                        <input 
-                            required 
-                            type="text" 
-                            inputMode="numeric"
-                            value={amount} 
-                            onChange={handleAmountChange} 
-                            className="w-full border rounded-lg p-3 text-sm font-mono" 
-                            placeholder="0" 
-                        />
+                        <div className="relative">
+                            <input 
+                                required 
+                                type="number" 
+                                value={amount} 
+                                onChange={e => setAmount(e.target.value)} 
+                                className="w-full border rounded-lg p-3 text-sm font-mono pr-20" 
+                                placeholder="0" 
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold pointer-events-none bg-white pl-2">
+                                {amount ? formatCurrency(parseInt(amount)) : ''}
+                            </div>
+                        </div>
                       </div>
                       {/* Interest Rate Input REMOVED */}
                       <div>
@@ -459,13 +435,15 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                               <div key={u.id}>
                                   <label className="text-xs block mb-1 font-medium">{u.name}</label>
                                   <input 
-                                    type="text"
-                                    inputMode="numeric"
+                                    type="number"
                                     value={customAmounts[u.id] || ''} 
-                                    onChange={e => handleCustomAmountChange(u.id, e.target.value)}
+                                    onChange={e => setCustomAmounts(prev => ({...prev, [u.id]: e.target.value}))}
                                     className="w-full border text-sm p-2 rounded font-mono" 
-                                    placeholder="Số tiền"
+                                    placeholder="0"
                                   />
+                                  <div className="text-[10px] text-right text-slate-400 font-medium min-h-[15px]">
+                                      {customAmounts[u.id] ? formatCurrency(parseInt(customAmounts[u.id])) : ''}
+                                  </div>
                               </div>
                           ))}
                        </div>
@@ -811,16 +789,20 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   {/* PRINCIPAL INPUT */}
                   <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
                      <span className="font-medium text-slate-700">Số tiền trả:</span>
-                     <div className="flex items-center gap-1">
-                         <input 
-                            type="text"
-                            inputMode="numeric"
-                            value={paymentAmountInput}
-                            onChange={handlePaymentAmountChange}
-                            className="w-28 text-right border-none focus:ring-0 outline-none font-bold text-indigo-700 bg-transparent text-lg"
-                            placeholder="0"
-                         />
-                         <span className="text-xs text-slate-400">₫</span>
+                     <div className="flex flex-col items-end">
+                         <div className="flex items-center gap-1">
+                            <input 
+                                type="number"
+                                value={paymentAmountInput}
+                                onChange={(e) => setPaymentAmountInput(e.target.value)}
+                                className="w-32 text-right border-none focus:ring-0 outline-none font-bold text-indigo-700 bg-transparent text-lg"
+                                placeholder="0"
+                            />
+                            <span className="text-xs text-slate-400">₫</span>
+                         </div>
+                         <div className="text-[10px] text-slate-400 font-bold min-h-[15px]">
+                            {paymentAmountInput ? formatCurrency(parseInt(paymentAmountInput || '0')) : ''}
+                         </div>
                      </div>
                   </div>
 
@@ -854,7 +836,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                       const amount = parseFormattedNumber(paymentAmountInput);
+                       const amount = parseInt(paymentAmountInput || '0', 10);
                        if(amount > 0) {
                            onMarkAsPaid(confirmPayment.costId, confirmPayment.debtorId, amount, 0, paymentDate);
                            setConfirmPayment(null);
