@@ -571,7 +571,7 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative font-sans">
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 relative font-sans">
           {/* Global Loading Overlay (for Uploads) */}
           {isUploading && (
               <div className="fixed inset-0 bg-slate-900/80 z-[200] flex flex-col items-center justify-center text-white backdrop-blur-sm">
@@ -666,7 +666,7 @@ export default function App() {
                 <div className="relative -top-6">
                     <button 
                         onClick={handleFABClick}
-                        className="w-14 h-14 rounded-full bg-accent-500 text-white shadow-xl shadow-accent-500/40 flex items-center justify-center transform active:scale-95 transition-all border-4 border-slate-50"
+                        className="w-14 h-14 rounded-full bg-accent-500 text-white shadow-xl shadow-accent-500/40 flex items-center justify-center transform active:scale-95 transition-all border-4 border-slate-100"
                     >
                         <Plus className="w-8 h-8" strokeWidth={3} />
                     </button>

@@ -290,7 +290,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       {/* 1. HERO SECTION & WALLET */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Total Cost Card */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden group">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-10 bg-slate-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
                <div>
                    <p className="text-slate-500 font-medium text-sm flex items-center gap-2 mb-2">
@@ -309,7 +309,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
           </div>
 
           {/* My Wallet Card (Net Position) */}
-          <div className={`p-6 rounded-3xl border shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden transition-all ${myNetPosition.net >= 0 ? 'bg-white border-slate-100' : 'bg-white border-red-100'}`}>
+          <div className={`p-6 rounded-3xl border shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden transition-all ${myNetPosition.net >= 0 ? 'bg-white border-slate-200' : 'bg-white border-red-100'}`}>
               <div>
                    <p className="text-slate-500 font-medium text-sm flex items-center gap-2 mb-3">
                        <Wallet className="w-4 h-4" /> Ví của tôi
@@ -330,7 +330,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                       <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Phải thu</span>
                       <span className="text-sm font-bold text-emerald-600 font-mono block">+{formatCurrency(myNetPosition.totalReceivable)}</span>
                   </div>
-                  <div>
+                  <div className="text-right">
                       <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Phải trả</span>
                       <span className="text-sm font-bold text-rose-600 font-mono block">-{formatCurrency(myNetPosition.totalOwed)}</span>
                   </div>
@@ -368,7 +368,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       </div>
 
       {/* 2. TRANSACTIONS LIST */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
            <div className="p-6 border-b border-slate-50 flex justify-between items-center">
                <h3 className="font-bold text-lg text-slate-800">Giao dịch gần đây</h3>
                <button className="text-primary-600 text-sm font-bold hover:underline">Xem tất cả</button>
@@ -383,22 +383,22 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
                   return (
                       <div key={cost.id} onClick={() => setExpandedCost(expandedCost === cost.id ? null : cost.id)} className={`p-5 hover:bg-slate-50 transition-colors cursor-pointer group ${!isApproved ? 'bg-amber-50/30' : ''}`}>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-start gap-4">
                               {/* Icon/Avatar */}
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-sm ${isApproved ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-600'}`}>
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-sm mt-0.5 ${isApproved ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-600'}`}>
                                   {payer?.avatar}
                               </div>
                               
                               {/* Main Info */}
                               <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                      <h4 className="font-bold text-slate-800 truncate">{cost.description}</h4>
-                                      {!isApproved && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-wide">Chờ duyệt</span>}
+                                  <div className="flex flex-wrap items-start gap-x-2 gap-y-1 mb-1">
+                                      <h4 className="font-bold text-slate-800 text-sm sm:text-base leading-snug break-words">{cost.description}</h4>
+                                      {!isApproved && <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-wide whitespace-nowrap mt-0.5">Chờ duyệt</span>}
                                   </div>
-                                  <div className="text-xs text-slate-500 flex items-center gap-2">
+                                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
                                       <span>{formatDate(cost.date)}</span>
                                       <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                      <span className="truncate max-w-[100px]">{stageName}</span>
+                                      <span className="truncate max-w-[120px]">{stageName}</span>
                                       {cost.attachments && cost.attachments.length > 0 && <Paperclip className="w-3 h-3 text-slate-400" />}
                                   </div>
                               </div>
@@ -411,12 +411,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                   </div>
                               </div>
                               
-                              <ChevronDown className={`w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-transform ${expandedCost === cost.id ? 'rotate-180' : ''}`} />
+                              <ChevronDown className={`w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-transform mt-1 ${expandedCost === cost.id ? 'rotate-180' : ''}`} />
                           </div>
 
                           {/* EXPANDED DETAILS */}
                           {expandedCost === cost.id && (
-                              <div className="mt-4 pt-4 border-t border-slate-100 pl-16 animate-in slide-in-from-top-2">
+                              <div className="mt-4 pt-4 border-t border-slate-100 pl-0 sm:pl-16 animate-in slide-in-from-top-2">
                                   
                                   {/* Action Buttons Row */}
                                   <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
@@ -459,7 +459,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                   )}
 
                                   {/* Allocation List */}
-                                  <div className="bg-slate-50 rounded-xl p-4 text-sm space-y-3">
+                                  <div className="bg-slate-50 rounded-xl px-3 py-2 text-sm space-y-1">
                                       {cost.allocations.map(a => {
                                           const u = users.find(user => user.id === a.userId);
                                           const isMe = u?.id === currentUser.id;
@@ -469,40 +469,48 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           const isPaid = status.remainingPrincipal <= 0;
 
                                           return (
-                                              <div key={a.userId} className="flex items-center justify-between">
-                                                  <div className="flex items-center gap-2">
-                                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isMe ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600'}`}>
-                                                          {u?.avatar}
-                                                      </div>
-                                                      <span className={`font-medium ${isMe ? 'text-primary-700' : 'text-slate-700'}`}>{u?.name}</span>
+                                              <div key={a.userId} className="flex items-center justify-between py-3 border-b border-dashed border-slate-200 last:border-0 last:pb-1">
+                                                  {/* Left: User Info - No Avatar, No Truncate */}
+                                                  <div className="flex items-center flex-1 min-w-0 mr-2">
+                                                      <span className={`font-medium text-sm ${isMe ? 'text-blue-700' : 'text-slate-700'}`}>
+                                                          {u?.name}
+                                                      </span>
                                                   </div>
                                                   
-                                                  <div className="flex items-center gap-3">
+                                                  {/* Right: Amount + Status + Action */}
+                                                  <div className="flex items-center gap-3 flex-shrink-0">
                                                       <div className="text-right">
-                                                          <div className="font-mono font-bold text-slate-800">{formatCurrency(a.amount)}</div>
+                                                          <div className={`font-mono font-bold text-sm sm:text-base tracking-tight whitespace-nowrap ${isPaid ? 'text-slate-400 decoration-slate-300' : 'text-slate-800'}`}>
+                                                              {formatCurrency(a.amount)}
+                                                          </div>
                                                           {isDebtor && a.paidAmount > 0 && !isPaid && (
-                                                              <div className="text-[10px] text-emerald-600 font-bold">Đã trả: {formatCurrency(a.paidAmount)}</div>
+                                                              <div className="text-[10px] text-emerald-600 font-bold mt-0.5 whitespace-nowrap">
+                                                                  Đã trả: {formatCurrency(a.paidAmount)}
+                                                              </div>
                                                           )}
                                                       </div>
 
-                                                      {isDebtor && (
-                                                          isPaid ? (
-                                                              <div className="bg-emerald-100 text-emerald-700 p-1 rounded-full"><Check className="w-3 h-3" /></div>
-                                                          ) : (
-                                                              canCollect && (
-                                                                  <button 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleOpenPaymentConfirm(cost.id, a.userId, u?.name || '', a.amount, a.payments || [], cost.date, 0);
-                                                                    }}
-                                                                    className="p-1.5 bg-white border border-slate-200 text-primary-600 rounded-lg shadow-sm hover:bg-primary-50 transition-colors"
-                                                                    title="Thu tiền"
-                                                                  >
-                                                                      <DollarSign className="w-3.5 h-3.5" />
-                                                                  </button>
+                                                      {/* Fixed width container for alignment */}
+                                                      <div className="w-8 flex justify-end">
+                                                          {isDebtor && (
+                                                              isPaid ? (
+                                                                  <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full"><Check className="w-4 h-4" /></div>
+                                                              ) : (
+                                                                  canCollect && (
+                                                                      <button 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenPaymentConfirm(cost.id, a.userId, u?.name || '', a.amount, a.payments || [], cost.date, 0);
+                                                                        }}
+                                                                        className="p-1.5 bg-white border border-slate-200 text-primary-600 rounded-lg shadow-sm hover:bg-primary-50 transition-colors"
+                                                                        title="Thu tiền"
+                                                                      >
+                                                                          <DollarSign className="w-4 h-4" />
+                                                                      </button>
+                                                                  )
                                                               )
-                                                          )
-                                                      )}
+                                                          )}
+                                                      </div>
                                                   </div>
                                               </div>
                                           )

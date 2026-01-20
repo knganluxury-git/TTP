@@ -65,14 +65,14 @@ const BudgetInput = ({ value, onUpdate }: { value: number, onUpdate: (val: numbe
     if (isEditing) {
         return (
             <div className="flex items-center gap-1 justify-end">
-                <input ref={inputRef} type="text" inputMode="numeric" value={tempStr} onChange={handleChange} onKeyDown={(e) => e.key === 'Enter' && handleSave()} placeholder="0" className="w-28 font-bold text-right bg-white border border-primary-300 rounded px-1 py-0.5 text-sm outline-none" />
+                <input ref={inputRef} type="text" inputMode="numeric" value={tempStr} onChange={handleChange} onKeyDown={(e) => e.key === 'Enter' && handleSave()} placeholder="0" className="w-32 font-bold text-right bg-white border border-primary-300 rounded px-1 py-0.5 text-sm outline-none" />
                 <button onClick={handleSave} className="p-0.5 bg-green-100 text-green-700 rounded"><Check size={12} /></button>
             </div>
         );
     }
     return (
         <div onClick={() => setIsEditing(true)} className="group cursor-pointer flex items-center justify-end gap-1">
-            <div className="font-bold text-slate-600 text-right text-sm">{value > 0 ? formatCurrency(value) : '---'}</div>
+            <div className="font-bold text-slate-600 text-right text-base">{value > 0 ? formatCurrency(value) : '---'}</div>
             <Pencil className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100" />
         </div>
     );
@@ -151,7 +151,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                         {/* Card Content */}
                         <div className={`flex-1 rounded-2xl p-5 border transition-all duration-300 group
                             ${isInProgress ? 'bg-white border-primary-200 shadow-xl shadow-primary-500/10 translate-x-1' : 
-                              isCompleted ? 'bg-slate-50 border-slate-200 opacity-90' : 'bg-white border-slate-100 opacity-80 hover:opacity-100'}`}
+                              isCompleted ? 'bg-slate-50 border-slate-200 opacity-90' : 'bg-white border-slate-200 opacity-80 hover:opacity-100'}`}
                         >
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-slate-50 pb-3">
                                 <div className="flex-1 min-w-0">
@@ -204,28 +204,34 @@ export const Timeline: React.FC<TimelineProps> = ({
                                 )}
                             </div>
 
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase mb-1">
-                                        <PiggyBank size={14} /> Ngân sách
+                            {/* Stats Grid - Vertical Stack for Better Visibility */}
+                            <div className="flex flex-col gap-3">
+                                {/* Budget Row */}
+                                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase">
+                                        <PiggyBank size={16} className="text-slate-400" /> 
+                                        <span>Ngân sách</span>
                                     </div>
                                     {role === Role.ADMIN ? (
                                         <BudgetInput value={stage.budget} onUpdate={(v) => onUpdateStageBudget(stage.id, v)} />
                                     ) : (
-                                        <div className="font-bold text-slate-700 text-right">{formatCurrency(stage.budget)}</div>
+                                        <div className="font-bold text-slate-700 text-right text-base">{formatCurrency(stage.budget)}</div>
                                     )}
                                 </div>
 
-                                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 relative overflow-hidden">
-                                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase mb-1 relative z-10">
-                                        <Coins size={14} /> Thực chi
-                                    </div>
-                                    <div className={`font-mono font-bold text-right text-lg relative z-10 ${percentUsed > 100 ? 'text-rose-600' : 'text-slate-800'}`}>
-                                        {formatCurrency(stage.totalCost)}
+                                {/* Actual Cost Row */}
+                                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-200 relative overflow-hidden">
+                                    <div className="relative z-10 flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase">
+                                            <Coins size={16} className="text-slate-400" />
+                                            <span>Thực chi</span>
+                                        </div>
+                                        <div className={`font-mono font-bold text-right text-base relative z-10 ${percentUsed > 100 ? 'text-rose-600' : 'text-slate-800'}`}>
+                                            {formatCurrency(stage.totalCost)}
+                                        </div>
                                     </div>
                                     {/* Progress Bar Background */}
-                                    <div className="absolute bottom-0 left-0 h-1 bg-slate-200 w-full">
+                                    <div className="absolute bottom-0 left-0 h-1 bg-slate-200 w-full opacity-60">
                                         <div 
                                             className={`h-full transition-all duration-1000 ${percentUsed > 100 ? 'bg-rose-500' : percentUsed > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
                                             style={{ width: `${Math.min(percentUsed, 100)}%` }}
