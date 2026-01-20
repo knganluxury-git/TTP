@@ -45,6 +45,14 @@ export interface Allocation {
   isPaid: boolean; // True if paidAmount >= amount
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string; // MIME type e.g., 'image/jpeg', 'application/pdf'
+  size: number;
+}
+
 export interface Cost {
   id: string;
   stageId: string;
@@ -58,6 +66,7 @@ export interface Cost {
   approvedBy: string[]; // List of user IDs who approved
   status: 'PENDING' | 'APPROVED';
   createdAt: number;
+  attachments?: Attachment[]; // List of uploaded proofs/contracts
 }
 
 export interface DebtRecord {

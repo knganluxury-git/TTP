@@ -2,10 +2,12 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 
 // Key used to store config in browser's local storage
 const STORAGE_KEY = 'ttp_firebase_config';
@@ -24,6 +26,13 @@ export const getFirebaseDb = (): Firestore => {
     throw new Error("Firebase Database chưa được khởi tạo.");
   }
   return db;
+};
+
+export const getFirebaseStorage = (): FirebaseStorage => {
+    if (!storage) {
+      throw new Error("Firebase Storage chưa được khởi tạo.");
+    }
+    return storage;
 };
 
 /**
@@ -53,6 +62,7 @@ export const tryInitFirebase = (): boolean => {
       app = initializeApp(envConfig);
       auth = getAuth(app);
       db = getFirestore(app);
+      storage = getStorage(app);
       return true;
     } catch (e) {
       console.error("Lỗi khởi tạo từ Env Vars:", e);
@@ -67,6 +77,7 @@ export const tryInitFirebase = (): boolean => {
       app = initializeApp(parsedConfig);
       auth = getAuth(app);
       db = getFirestore(app);
+      storage = getStorage(app);
       return true;
     } catch (e) {
       console.error("Lỗi khởi tạo từ LocalStorage:", e);
@@ -85,6 +96,7 @@ export const initFirebaseManual = (config: any) => {
     app = initializeApp(config);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     // Save to storage for next reload
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     return true;

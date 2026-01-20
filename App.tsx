@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { INITIAL_USERS, DEFAULT_INTEREST_RATE_YEARLY } from './constants';
-import { User, Stage, Cost, DebtRecord, Role, StageStatus, Payment, Topic, TopicStatus, TopicComment } from './types';
+import { User, Stage, Cost, DebtRecord, Role, StageStatus, Payment, Topic, TopicStatus, TopicComment, Attachment } from './types';
 import { calculateDebts, formatCurrency } from './utils/finance';
 import { Timeline } from './components/Timeline';
 import { FinancialDashboard } from './components/FinancialDashboard';
@@ -11,15 +11,17 @@ import { DiscussionBoard } from './components/DiscussionBoard';
 import { Login } from './components/Login';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2, Settings2 } from 'lucide-react';
-import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig } from './firebaseConfig';
+import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig, getFirebaseStorage } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function App() {
   // --- Config & Auth State ---
   const [isFirebaseReady, setIsFirebaseReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   // --- App Data State ---
   const [users] = useState<User[]>(INITIAL_USERS);
@@ -190,21 +192,58 @@ export default function App() {
     await updateDoc(doc(db, 'stages', id), { paymentCallAmount: 0 });
   };
 
-  const handleAddCost = async (costData: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>) => {
+  const handleAddCost = async (costData: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>, files: File[]) => {
     if (!currentUser) return;
+    setIsUploading(true);
+    
+    const newId = `c${Date.now()}`;
+    const attachments: Attachment[] = [];
+
+    // 1. Upload files if any
+    if (files.length > 0) {
+      try {
+        const storage = getFirebaseStorage();
+        // Process files in parallel
+        await Promise.all(files.map(async (file) => {
+          const storageRef = ref(storage, `costs/${newId}/${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          
+          attachments.push({
+            id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            url: downloadURL,
+            type: file.type,
+            size: file.size
+          });
+        }));
+      } catch (error) {
+        console.error("Error uploading files:", error);
+        alert("Lỗi khi tải file lên. Vui lòng thử lại.");
+        setIsUploading(false);
+        return; // Stop if upload fails
+      }
+    }
+
+    // 2. Save Cost Data
     const newCost: Cost = {
       ...costData,
-      id: `c${Date.now()}`,
+      id: newId,
       createdAt: Date.now(),
       status: 'PENDING',
       approvedBy: [currentUser.id],
-      interestRate: 0 // FORCE 0 Interest
+      interestRate: 0, // FORCE 0 Interest
+      attachments: attachments
     };
+
     try {
         const db = getFirebaseDb();
         await setDoc(doc(db, 'costs', newCost.id), newCost);
     } catch (e) {
         console.error("Error adding cost", e);
+        alert("Lỗi lưu dữ liệu chi phí.");
+    } finally {
+        setIsUploading(false);
     }
   };
 
@@ -466,7 +505,16 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative">
+          {/* Global Loading Overlay (for Uploads) */}
+          {isUploading && (
+              <div className="fixed inset-0 bg-black/60 z-[200] flex flex-col items-center justify-center text-white">
+                  <Loader2 className="w-12 h-12 animate-spin mb-3 text-indigo-400" />
+                  <p className="font-bold text-lg">Đang tải tài liệu lên...</p>
+                  <p className="text-sm text-slate-300">Vui lòng không tắt trình duyệt.</p>
+              </div>
+          )}
+
           {/* MOBILE Header */}
           <header className="md:hidden bg-slate-900 text-white sticky top-0 z-30 shadow-md">
              <div className="flex items-center justify-between p-4">

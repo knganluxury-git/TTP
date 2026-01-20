@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
 import { chatWithFinancialAssistant } from '../services/geminiService';
-import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface FinancialDashboardProps {
@@ -14,7 +14,7 @@ interface FinancialDashboardProps {
   stages: Stage[];
   defaultInterestRate: number;
   onUpdateDefaultSettings: (rate: number) => void;
-  onAddCost: (cost: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>) => void;
+  onAddCost: (cost: Omit<Cost, 'id' | 'createdAt' | 'approvedBy' | 'status'>, files: File[]) => void;
   onApproveCost: (costId: string) => void;
   onMarkAsPaid: (costId: string, debtorId: string, amount: number, interest: number, paidDate: string) => void;
   onDismissPaymentCall: (stageId: string) => void;
@@ -144,6 +144,10 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [allocType, setAllocType] = useState<'EQUAL' | 'CUSTOM'>('EQUAL');
   const [customAmounts, setCustomAmounts] = useState<{[key:string]: string}>({}); // Raw Strings
+  
+  // File Upload State
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-select first stage if none selected (useful when starting with 0 stages then adding one)
   useEffect(() => {
@@ -151,6 +155,17 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
         setStageId(stages[0].id);
     }
   }, [stages, stageId]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+        const newFiles = Array.from(e.target.files);
+        setSelectedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,12 +214,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       interestRate: 0, // Force 0
       isCustomAllocation: allocType === 'CUSTOM',
       allocations
-    });
+    }, selectedFiles);
     
     setShowAddForm(false);
     setDescription('');
     setAmount('');
     setCustomAmounts({});
+    setSelectedFiles([]);
   };
 
   const handleOpenPaymentConfirm = (
@@ -439,6 +455,38 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                          <label className="block text-xs font-medium text-slate-500 mb-1">Ngày</label>
                          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded-lg p-3 text-sm bg-white" />
                       </div>
+                      
+                      {/* FILE UPLOAD SECTION */}
+                      <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Đính kèm chứng từ (Hóa đơn, Ảnh, Hợp đồng)</label>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs">
+                                      <span className="truncate max-w-[150px]">{file.name}</span>
+                                      <button type="button" onClick={() => removeFile(idx)} className="text-indigo-400 hover:text-indigo-900">
+                                          <X className="w-3 h-3" />
+                                      </button>
+                                  </div>
+                              ))}
+                          </div>
+                          <div className="flex gap-2">
+                              <input 
+                                  type="file" 
+                                  multiple 
+                                  ref={fileInputRef} 
+                                  className="hidden" 
+                                  onChange={handleFileChange}
+                              />
+                              <button 
+                                  type="button" 
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm transition-colors"
+                              >
+                                  <Paperclip className="w-4 h-4" /> Chọn file
+                              </button>
+                          </div>
+                      </div>
+
                       <div className="md:col-span-2">
                          <label className="block text-xs font-medium text-slate-500 mb-1">Phân bổ</label>
                          <div className="flex gap-4 p-1">
@@ -509,6 +557,11 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                 Voting: {approvalCount}/{totalUsers}
                                             </span>
                                         )}
+                                        {cost.attachments && cost.attachments.length > 0 && (
+                                            <span className="text-slate-400" title={`${cost.attachments.length} đính kèm`}>
+                                                <Paperclip className="w-3 h-3" />
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="text-xs text-slate-500 flex flex-wrap gap-1 items-center">
                                        <span className="whitespace-nowrap">{formatDate(cost.date)}</span>
@@ -536,6 +589,36 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           {/* Expanded Details */}
                           {expandedCost === cost.id && (
                               <div className="mt-4 pl-0 sm:pl-11 text-sm space-y-3 animate-in slide-in-from-top-1">
+                                  {/* Attachments Section */}
+                                  {cost.attachments && cost.attachments.length > 0 && (
+                                      <div className="mb-4">
+                                          <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Chứng từ đính kèm</p>
+                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                              {cost.attachments.map((att) => {
+                                                  const isImage = att.type.startsWith('image/');
+                                                  return (
+                                                      <a 
+                                                          key={att.id} 
+                                                          href={att.url} 
+                                                          target="_blank" 
+                                                          rel="noreferrer"
+                                                          className="group relative flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all text-center gap-1 overflow-hidden"
+                                                      >
+                                                          {isImage ? (
+                                                              <div className="w-full h-16 bg-slate-100 rounded mb-1 overflow-hidden">
+                                                                  <img src={att.url} alt={att.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                                              </div>
+                                                          ) : (
+                                                              <FileText className="w-8 h-8 text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors" />
+                                                          )}
+                                                          <span className="text-[10px] text-slate-600 truncate w-full px-1">{att.name}</span>
+                                                      </a>
+                                                  )
+                                              })}
+                                          </div>
+                                      </div>
+                                  )}
+
                                   {/* Pending Approval Action Section */}
                                   {needsMyApproval && (
                                       <div className="p-4 bg-white rounded-lg border-2 border-amber-100 shadow-sm mb-4">
