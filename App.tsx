@@ -10,7 +10,7 @@ import { PersonalReport } from './components/PersonalReport';
 import { DiscussionBoard } from './components/DiscussionBoard';
 import { Login } from './components/Login';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
-import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2, Settings2 } from 'lucide-react';
+import { LayoutGrid, Calendar, History, Users, LogOut, Loader2, Settings2, Plus, FileBarChart } from 'lucide-react';
 import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig, getFirebaseStorage } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, arrayUnion } from 'firebase/firestore';
@@ -25,12 +25,15 @@ export default function App() {
   
   // --- App Data State ---
   const [users] = useState<User[]>(INITIAL_USERS);
-  const [stages, setStages] = useState<Stage[]>([]); // Initialize empty, load from DB
-  const [costs, setCosts] = useState<Cost[]>([]);    // Initialize empty, load from DB
-  const [topics, setTopics] = useState<Topic[]>([]); // Initialize empty, load from DB
+  const [stages, setStages] = useState<Stage[]>([]); 
+  const [costs, setCosts] = useState<Cost[]>([]);    
+  const [topics, setTopics] = useState<Topic[]>([]); 
   
   const [view, setView] = useState<'DASHBOARD' | 'TIMELINE' | 'ACTIVITY' | 'DISCUSSION'>('DASHBOARD');
   const [showPersonalReport, setShowPersonalReport] = useState(false);
+  
+  // Lifted State for FAB to control Add Cost Modal
+  const [showAddCostModal, setShowAddCostModal] = useState(false);
   
   // --- 1. Init Firebase on Mount ---
   useEffect(() => {
@@ -77,7 +80,6 @@ export default function App() {
     // Sync Stages
     const unsubStages = onSnapshot(query(collection(db, 'stages'), orderBy('id')), (snapshot) => {
         const data = snapshot.docs.map(doc => doc.data() as Stage);
-        // Sort specifically by ID or created date if needed, though orderBy above helps
         setStages(data.sort((a,b) => a.id.localeCompare(b.id)));
     });
 
@@ -440,6 +442,15 @@ export default function App() {
       });
   };
 
+  const handleFABClick = () => {
+    // If we are not in dashboard, switch to it
+    if (view !== 'DASHBOARD') {
+        setView('DASHBOARD');
+    }
+    // Open the modal (The dashboard will listen to this prop)
+    setShowAddCostModal(true);
+  };
+
   // 4. Main App Render Logic
   const renderContent = () => {
     // 1. Check if Firebase Config is missing
@@ -451,7 +462,7 @@ export default function App() {
     if (initializing) {
         return (
             <div className="h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
             </div>
         )
     }
@@ -529,6 +540,9 @@ export default function App() {
             onMarkAsPaid={handlePayment}
             onDismissPaymentCall={handleDismissPaymentCall}
             onUploadAttachments={handleUploadAttachments}
+            // Passing down the lifted state for Modal control
+            externalShowAddForm={showAddCostModal}
+            setExternalShowAddForm={setShowAddCostModal}
             />
         );
         break;
@@ -537,88 +551,48 @@ export default function App() {
     const NavButton = ({ active, onClick, icon: Icon, label }: any) => (
       <button 
         onClick={onClick}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors whitespace-nowrap ${active ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${active ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
       >
         <Icon className="w-5 h-5 flex-shrink-0" />
-        <span className="font-medium">{label}</span>
+        <span className="text-sm">{label}</span>
       </button>
     );
 
+    const MobileNavButton = ({ active, onClick, icon: Icon, label }: any) => (
+       <button 
+         onClick={onClick}
+         className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all duration-300 ${active ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+       >
+          <div className={`p-1.5 rounded-2xl transition-all ${active ? 'bg-primary-50' : 'bg-transparent'}`}>
+             <Icon className={`w-6 h-6 ${active ? 'fill-current' : 'stroke-2'}`} strokeWidth={active ? 0 : 2} />
+          </div>
+          <span className="text-[10px] font-bold">{label}</span>
+       </button>
+    );
+
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative">
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 relative font-sans">
           {/* Global Loading Overlay (for Uploads) */}
           {isUploading && (
-              <div className="fixed inset-0 bg-black/60 z-[200] flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                  <Loader2 className="w-12 h-12 animate-spin mb-3 text-blue-400" />
+              <div className="fixed inset-0 bg-slate-900/80 z-[200] flex flex-col items-center justify-center text-white backdrop-blur-sm">
+                  <Loader2 className="w-12 h-12 animate-spin mb-3 text-primary-400" />
                   <p className="font-bold text-lg">Đang tải chứng từ lên...</p>
                   <p className="text-sm text-slate-300">Vui lòng không tắt trình duyệt.</p>
               </div>
           )}
-
-          {/* MOBILE Header */}
-          <header className="md:hidden bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-             <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-2">
-                   <img src={APP_LOGO} alt="HTTP Home" className="w-8 h-8 object-contain" />
-                   <h1 className="text-lg font-bold tracking-tight">HTTP Home</h1>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-slate-800 rounded-full pl-3 pr-1 py-1 border border-slate-700">
-                       <span className="text-xs font-medium max-w-[80px] truncate">{currentUser.name}</span>
-                       <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-[10px] font-bold">
-                          {currentUser.avatar}
-                       </div>
-                    </div>
-                    <button onClick={handleLogout} className="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white">
-                        <LogOut className="w-4 h-4" />
-                    </button>
-                </div>
-             </div>
-             {/* Mobile Nav Tabs - Updated Active Color */}
-             <nav className="flex px-4 pb-0 gap-1 overflow-x-auto no-scrollbar border-t border-slate-800">
-                 <button 
-                   onClick={() => setView('DASHBOARD')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DASHBOARD' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
-                 >
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span className="text-sm font-medium">Tài chính</span>
-                 </button>
-                 <button 
-                   onClick={() => setView('TIMELINE')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'TIMELINE' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
-                 >
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm font-medium">Tiến độ</span>
-                 </button>
-                 <button 
-                   onClick={() => setView('ACTIVITY')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'ACTIVITY' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
-                 >
-                    <History className="w-4 h-4" />
-                    <span className="text-sm font-medium">Nhật ký</span>
-                 </button>
-                 <button 
-                   onClick={() => setView('DISCUSSION')}
-                   className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 transition-colors whitespace-nowrap px-2 ${view === 'DISCUSSION' ? 'border-blue-500 text-white' : 'border-transparent text-slate-400'}`}
-                 >
-                    <Users className="w-4 h-4" />
-                    <span className="text-sm font-medium">Hội nghị</span>
-                 </button>
-             </nav>
-          </header>
     
           {/* DESKTOP Sidebar */}
-          <aside className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex-col h-screen sticky top-0 overflow-y-auto">
-            <div className="p-6 flex items-center gap-3">
-               <img src={APP_LOGO} alt="Logo" className="w-10 h-10 object-contain bg-white rounded-lg p-1" />
+          <aside className="hidden md:flex w-72 bg-slate-900 text-slate-300 flex-shrink-0 flex-col h-screen sticky top-0 overflow-y-auto border-r border-slate-800">
+            <div className="p-8 pb-4 flex items-center gap-3">
+               <img src={APP_LOGO} alt="Logo" className="w-10 h-10 object-contain bg-white rounded-xl p-1 shadow-md" />
                <div>
-                   <h1 className="text-2xl font-bold text-white tracking-tight">HTTP Home</h1>
-                   <p className="text-xs text-slate-500 mt-1">Quản lý dự án</p>
+                   <h1 className="text-2xl font-extrabold text-white tracking-tight">HTTP Home</h1>
+                   <p className="text-xs text-slate-500 font-medium tracking-wide">FINANCE & BUILD</p>
                </div>
             </div>
     
-            <nav className="flex-1 px-4 space-y-2">
-               <NavButton active={view === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} icon={LayoutDashboard} label="Tài chính" />
+            <nav className="flex-1 px-4 space-y-2 mt-6">
+               <NavButton active={view === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} icon={LayoutGrid} label="Tổng quan" />
                <NavButton active={view === 'TIMELINE'} onClick={() => setView('TIMELINE')} icon={Calendar} label="Tiến độ" />
                <NavButton active={view === 'ACTIVITY'} onClick={() => setView('ACTIVITY')} icon={History} label="Nhật ký" />
                <NavButton active={view === 'DISCUSSION'} onClick={() => setView('DISCUSSION')} icon={Users} label="Hội nghị" />
@@ -626,37 +600,29 @@ export default function App() {
     
             {/* User Info Footer */}
             <div className="p-4 border-t border-slate-800">
-               <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-slate-800/50">
-                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow-sm">
+               <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-slate-800 border border-slate-700 shadow-sm">
+                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-xs font-bold flex-shrink-0 text-white shadow-inner border border-white/20">
                        {currentUser.avatar}
                    </div>
-                   <div className="min-w-0">
+                   <div className="min-w-0 flex-1">
                        <div className="text-sm font-bold text-white truncate">{currentUser.name}</div>
                        <div className="text-[10px] text-slate-400 truncate">{currentUser.email}</div>
                    </div>
-               </div>
-               <div className="flex items-center gap-2 mt-3">
-                    <button 
+                   <button 
                         onClick={handleLogout}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
+                        className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition"
+                        title="Đăng xuất"
                     >
-                        <LogOut className="w-3 h-3" /> Đăng xuất
-                    </button>
-                    <button 
-                        onClick={handleResetConfig}
-                        className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded transition"
-                        title="Reset Firebase Config"
-                    >
-                        <Settings2 className="w-3 h-3" />
-                    </button>
+                        <LogOut className="w-4 h-4" />
+                   </button>
                </div>
             </div>
           </aside>
     
           {/* Main Content */}
-          <main className="flex-1 w-full max-w-[100vw] overflow-hidden flex flex-col">
+          <main className="flex-1 w-full max-w-[100vw] overflow-hidden flex flex-col h-screen">
             {/* Desktop Header */}
-            <header className="hidden md:flex bg-white border-b border-slate-200 px-8 py-5 justify-between items-center sticky top-0 z-10 shadow-sm">
+            <header className="hidden md:flex bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 justify-between items-center sticky top-0 z-20">
                <div>
                  <h2 className="text-xl font-bold text-slate-800">
                    {view === 'DASHBOARD' && 'Tổng quan tài chính'}
@@ -664,33 +630,52 @@ export default function App() {
                    {view === 'ACTIVITY' && 'Nhật ký hoạt động'}
                    {view === 'DISCUSSION' && 'Hội nghị & Quy tắc'}
                  </h2>
-                 <p className="text-sm text-slate-500">Xin chào, {currentUser.name}</p>
                </div>
                
                <button 
                  onClick={() => setShowPersonalReport(true)}
-                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg transition-all"
+                 className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 hover:text-slate-900 transition-all font-semibold text-sm"
                >
-                 <FileText className="w-4 h-4" />
+                 <FileBarChart className="w-4 h-4" />
                  <span>Báo cáo cá nhân</span>
                </button>
             </header>
     
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
-               {/* Mobile Report Button (Floating) */}
-               <div className="md:hidden mb-4">
-                 <button 
-                    onClick={() => setShowPersonalReport(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-blue-100 text-blue-600 rounded-xl shadow-sm font-medium"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Xem báo cáo cá nhân của bạn</span>
-                  </button>
+            {/* Content Area - Scrollable */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 space-y-6 pb-32 md:pb-8 scroll-smooth">
+               {/* Mobile Header Logo */}
+               <div className="md:hidden flex items-center justify-between mb-2">
+                   <div className="flex items-center gap-2">
+                        <img src={APP_LOGO} alt="Logo" className="w-8 h-8 rounded-lg bg-white p-1 shadow-sm border border-slate-100" />
+                        <h1 className="font-extrabold text-slate-800 text-lg">HTTP Home</h1>
+                   </div>
+                   <div onClick={() => setShowPersonalReport(true)} className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer overflow-hidden border border-slate-300">
+                      {currentUser.avatar && <span className="text-xs font-bold text-slate-600">{currentUser.avatar}</span>}
+                   </div>
                </div>
-    
+
                {contentEl}
             </div>
+
+            {/* MOBILE BOTTOM NAVIGATION BAR */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-4 pt-2 pb-safe-bottom z-30 flex items-center justify-between">
+                <MobileNavButton active={view === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} icon={LayoutGrid} label="Home" />
+                <MobileNavButton active={view === 'TIMELINE'} onClick={() => setView('TIMELINE')} icon={Calendar} label="Tiến độ" />
+                
+                {/* FAB (Floating Action Button) - Centered */}
+                <div className="relative -top-6">
+                    <button 
+                        onClick={handleFABClick}
+                        className="w-14 h-14 rounded-full bg-accent-500 text-white shadow-xl shadow-accent-500/40 flex items-center justify-center transform active:scale-95 transition-all border-4 border-slate-50"
+                    >
+                        <Plus className="w-8 h-8" strokeWidth={3} />
+                    </button>
+                </div>
+
+                <MobileNavButton active={view === 'DISCUSSION'} onClick={() => setView('DISCUSSION')} icon={Users} label="Hội nghị" />
+                <MobileNavButton active={view === 'ACTIVITY'} onClick={() => setView('ACTIVITY')} icon={History} label="Nhật ký" />
+            </div>
+
           </main>
     
           {/* Personal Report Modal */}
