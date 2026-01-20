@@ -108,18 +108,20 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
   // --- Helpers for Input Formatting ---
   const formatNumberInput = (value: string) => {
-    const rawValue = value.replace(/\D/g, '');
+    const rawValue = value.replace(/[^0-9]/g, '');
     if (!rawValue) return '';
-    return new Intl.NumberFormat('vi-VN').format(parseInt(rawValue));
+    return new Intl.NumberFormat('vi-VN').format(parseInt(rawValue, 10));
   };
 
   const parseFormattedNumber = (value: string) => {
-    return parseFloat(value.replace(/\./g, '') || '0');
+    // Remove dots (thousand separators) and parse integer
+    const rawValue = value.replace(/\./g, '');
+    return parseInt(rawValue || '0', 10);
   };
 
   // Derived state for Modal Interest Calculation
   const paymentDetails = useMemo(() => {
-    if (!confirmPayment) return { principal: 0, interest: 0, total: 0, days: 0 };
+    if (!confirmPayment) return { principal: 0, interest: 0, total: 0, days: 0, remainingAfterPay: 0 };
     
     // The user inputs how much Principal they want to pay off
     const amountToPay = parseFormattedNumber(paymentAmountInput);
@@ -133,10 +135,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
         paymentDate // Target date for calculation
     );
     
+    const remainingAfterPay = Math.max(0, status.remainingPrincipal - amountToPay);
+
     return {
         principal: amountToPay,
         remainingBeforePay: status.remainingPrincipal,
         totalPayment: amountToPay, // No Interest
+        remainingAfterPay,
         days: status.daysSinceLastEvent
     };
   }, [confirmPayment, paymentDate, paymentAmountInput]);
@@ -800,7 +805,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                <div className="bg-slate-50 rounded-xl p-4 mb-4 space-y-4 text-sm border border-slate-100">
                   <div className="flex justify-between text-slate-500">
                       <span>Dư nợ hiện tại:</span>
-                      <span>{formatCurrency(paymentDetails.remainingBeforePay)}</span>
+                      <span className="font-medium text-slate-800">{formatCurrency(paymentDetails.remainingBeforePay)}</span>
                   </div>
                   
                   {/* PRINCIPAL INPUT */}
@@ -818,12 +823,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                          <span className="text-xs text-slate-400">₫</span>
                      </div>
                   </div>
-                  
-                  {/* Interest Input REMOVED */}
 
                   <div className="border-t border-slate-200 pt-2 flex justify-between font-bold text-slate-900">
-                      <span>Tổng thực thu:</span>
-                      <span>{formatCurrency(paymentDetails.totalPayment)}</span>
+                      <span>Dư nợ sau thanh toán:</span>
+                      <span className={paymentDetails.remainingAfterPay > 0 ? "text-amber-600" : "text-green-600"}>
+                          {formatCurrency(paymentDetails.remainingAfterPay)}
+                      </span>
                   </div>
                </div>
 
