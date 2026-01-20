@@ -13,7 +13,7 @@ import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { LayoutDashboard, Calendar, History, FileText, Users, LogOut, Loader2, Settings2 } from 'lucide-react';
 import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig, getFirebaseStorage } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function App() {
@@ -245,6 +245,42 @@ export default function App() {
     } catch (e) {
         console.error("Error adding cost", e);
         alert("Lỗi lưu dữ liệu chi phí.");
+    } finally {
+        setIsUploading(false);
+    }
+  };
+  
+  const handleUploadAttachments = async (costId: string, files: File[]) => {
+    if (!currentUser || files.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+        const storage = getFirebaseStorage();
+        const newAttachments: Attachment[] = [];
+
+        await Promise.all(files.map(async (file) => {
+            const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const storageRef = ref(storage, `costs/${costId}/${Date.now()}_${safeName}`);
+            
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            
+            newAttachments.push({
+                id: `att-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: file.name,
+                url: downloadURL,
+                type: file.type,
+                size: file.size
+            });
+        }));
+
+        const db = getFirebaseDb();
+        await updateDoc(doc(db, 'costs', costId), {
+            attachments: arrayUnion(...newAttachments)
+        });
+    } catch (error) {
+        console.error("Error uploading extra files:", error);
+        alert("Lỗi khi bổ sung chứng từ.");
     } finally {
         setIsUploading(false);
     }
@@ -492,6 +528,7 @@ export default function App() {
             onApproveCost={handleApproveCost}
             onMarkAsPaid={handlePayment}
             onDismissPaymentCall={handleDismissPaymentCall}
+            onUploadAttachments={handleUploadAttachments}
             />
         );
         break;

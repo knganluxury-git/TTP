@@ -18,6 +18,7 @@ interface FinancialDashboardProps {
   onApproveCost: (costId: string) => void;
   onMarkAsPaid: (costId: string, debtorId: string, amount: number, interest: number, paidDate: string) => void;
   onDismissPaymentCall: (stageId: string) => void;
+  onUploadAttachments: (costId: string, files: File[]) => void;
 }
 
 interface ChatMessage {
@@ -50,7 +51,7 @@ const RenderMessageText = ({ text }: { text: string }) => {
 };
 
 export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ 
-  costs, debts, users, currentUser, stages, defaultInterestRate, onUpdateDefaultSettings, onAddCost, onApproveCost, onMarkAsPaid, onDismissPaymentCall
+  costs, debts, users, currentUser, stages, defaultInterestRate, onUpdateDefaultSettings, onAddCost, onApproveCost, onMarkAsPaid, onDismissPaymentCall, onUploadAttachments
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedCost, setExpandedCost] = useState<string | null>(null);
@@ -590,34 +591,57 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                           {expandedCost === cost.id && (
                               <div className="mt-4 pl-0 sm:pl-11 text-sm space-y-3 animate-in slide-in-from-top-1">
                                   {/* Attachments Section */}
-                                  {cost.attachments && cost.attachments.length > 0 && (
-                                      <div className="mb-4">
-                                          <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Chứng từ đính kèm</p>
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                              {cost.attachments.map((att) => {
-                                                  const isImage = att.type.startsWith('image/');
-                                                  return (
-                                                      <a 
-                                                          key={att.id} 
-                                                          href={att.url} 
-                                                          target="_blank" 
-                                                          rel="noreferrer"
-                                                          className="group relative flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all text-center gap-1 overflow-hidden"
-                                                      >
-                                                          {isImage ? (
-                                                              <div className="w-full h-16 bg-slate-100 rounded mb-1 overflow-hidden">
-                                                                  <img src={att.url} alt={att.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                                              </div>
-                                                          ) : (
-                                                              <FileText className="w-8 h-8 text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors" />
-                                                          )}
-                                                          <span className="text-[10px] text-slate-600 truncate w-full px-1">{att.name}</span>
-                                                      </a>
-                                                  )
-                                              })}
-                                          </div>
+                                  <div className="mb-4">
+                                      {/* Header for attachments */}
+                                      <div className="flex items-center justify-between mb-2">
+                                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Chứng từ đính kèm</p>
                                       </div>
-                                  )}
+
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                          {/* Existing Files */}
+                                          {cost.attachments && cost.attachments.map((att) => {
+                                              const isImage = att.type.startsWith('image/');
+                                              return (
+                                                  <a 
+                                                      key={att.id} 
+                                                      href={att.url} 
+                                                      target="_blank" 
+                                                      rel="noreferrer"
+                                                      className="group relative flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-all text-center gap-1 overflow-hidden"
+                                                  >
+                                                      {isImage ? (
+                                                          <div className="w-full h-16 bg-slate-100 rounded mb-1 overflow-hidden">
+                                                              <img src={att.url} alt={att.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                                          </div>
+                                                      ) : (
+                                                          <FileText className="w-8 h-8 text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors" />
+                                                      )}
+                                                      <span className="text-[10px] text-slate-600 truncate w-full px-1">{att.name}</span>
+                                                  </a>
+                                              )
+                                          })}
+                                          
+                                          {/* Add File Button - Only for payer or admin */}
+                                          {(currentUser.id === cost.payerId || currentUser.role === Role.ADMIN) && (
+                                              <label className="cursor-pointer group flex flex-col items-center justify-center p-2 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-400 transition-all text-center gap-1 h-[100px]">
+                                                  <input 
+                                                    type="file" 
+                                                    multiple 
+                                                    className="hidden" 
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files.length > 0) {
+                                                            onUploadAttachments(cost.id, Array.from(e.target.files));
+                                                        }
+                                                    }}
+                                                  />
+                                                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                                                      <Plus className="w-4 h-4 text-indigo-600" />
+                                                  </div>
+                                                  <span className="text-[10px] text-indigo-600 font-medium">Thêm chứng từ</span>
+                                              </label>
+                                          )}
+                                      </div>
+                                  </div>
 
                                   {/* Pending Approval Action Section */}
                                   {needsMyApproval && (
