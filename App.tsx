@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { INITIAL_USERS, DEFAULT_INTEREST_RATE_YEARLY } from './constants';
+import { INITIAL_USERS, DEFAULT_INTEREST_RATE_YEARLY, APP_LOGO } from './constants';
 import { User, Stage, Cost, DebtRecord, Role, StageStatus, Payment, Topic, TopicStatus, TopicComment, Attachment } from './types';
 import { calculateDebts, formatCurrency } from './utils/finance';
 import { Timeline } from './components/Timeline';
@@ -559,7 +559,7 @@ export default function App() {
           <header className="md:hidden bg-slate-900 text-white sticky top-0 z-30 shadow-md">
              <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-2">
-                   <img src="/logo.png" alt="HTTP Home" className="w-8 h-8 object-contain" />
+                   <img src={APP_LOGO} alt="HTTP Home" className="w-8 h-8 object-contain" />
                    <h1 className="text-lg font-bold tracking-tight">HTTP Home</h1>
                 </div>
                 <div className="flex items-center gap-3">
@@ -610,7 +610,7 @@ export default function App() {
           {/* DESKTOP Sidebar */}
           <aside className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex-col h-screen sticky top-0 overflow-y-auto">
             <div className="p-6 flex items-center gap-3">
-               <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain bg-white rounded-lg p-1" />
+               <img src={APP_LOGO} alt="Logo" className="w-10 h-10 object-contain bg-white rounded-lg p-1" />
                <div>
                    <h1 className="text-2xl font-bold text-white tracking-tight">HTTP Home</h1>
                    <p className="text-xs text-slate-500 mt-1">Quản lý dự án</p>

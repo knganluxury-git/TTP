@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { getFirebaseAuth } from '../firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { APP_LOGO } from '../constants';
 
 export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -41,7 +42,7 @@ export const Login: React.FC = () => {
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
                 {/* Header matches Logo Blue */}
                 <div className="p-8 bg-blue-700 text-center flex flex-col items-center">
-                    <img src="/logo.png" alt="HTTP Home" className="w-20 h-20 mb-4 object-contain bg-white rounded-xl p-2 shadow-lg" />
+                    <img src={APP_LOGO} alt="HTTP Home" className="w-20 h-20 mb-4 object-contain bg-white rounded-xl p-2 shadow-lg" />
                     <h1 className="text-3xl font-bold text-white tracking-tight">HTTP Home</h1>
                     <p className="text-blue-100 mt-2 text-sm">Hệ thống quản lý tài chính & tiến độ</p>
                 </div>
