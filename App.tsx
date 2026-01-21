@@ -705,8 +705,17 @@ export default function App() {
                         <img src={APP_LOGO} alt="Logo" className="w-8 h-8 rounded-lg bg-white p-1 shadow-sm border border-slate-100" />
                         <h1 className="font-extrabold text-slate-800 text-lg">HTTP Home</h1>
                    </div>
-                   <div onClick={() => setShowPersonalReport(true)} className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer overflow-hidden border border-slate-300">
-                      {currentUser.avatar && <span className="text-xs font-bold text-slate-600">{currentUser.avatar}</span>}
+                   <div className="flex items-center gap-2">
+                      <div onClick={() => setShowPersonalReport(true)} className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center cursor-pointer overflow-hidden border border-slate-300 active:scale-95 transition-transform">
+                          {currentUser.avatar && <span className="text-xs font-bold text-slate-600">{currentUser.avatar}</span>}
+                      </div>
+                      <button 
+                          onClick={handleLogout} 
+                          className="p-2 text-slate-400 bg-white border border-slate-200 rounded-full shadow-sm active:scale-90 transition-all hover:text-red-500"
+                          title="Đăng xuất"
+                      >
+                          <LogOut className="w-4 h-4" />
+                      </button>
                    </div>
                </div>
 
@@ -799,6 +808,7 @@ export default function App() {
                 costs={costs} 
                 debts={debts} 
                 onClose={() => setShowPersonalReport(false)} 
+                onLogout={handleLogout}
             />
           )}
         </div>

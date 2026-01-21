@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { User, Cost, DebtRecord } from '../types';
 import { formatCurrency, formatDate } from '../utils/finance';
-import { X, Wallet, PiggyBank, Scale, Percent, TrendingUp } from 'lucide-react';
+import { X, Wallet, PiggyBank, Scale, Percent, TrendingUp, LogOut } from 'lucide-react';
 
 interface PersonalReportProps {
   user: User;
@@ -10,12 +10,12 @@ interface PersonalReportProps {
   costs: Cost[];
   debts: DebtRecord[];
   onClose: () => void;
+  onLogout?: () => void;
 }
 
-export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, costs, debts, onClose }) => {
+export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, costs, debts, onClose, onLogout }) => {
   // 1. Calculate Summary Metrics
   const summary = useMemo(() => {
-    // Total Share: Sum of amounts allocated to this user in APPROVED costs
     const totalShare = costs
       .filter(c => c.status === 'APPROVED')
       .reduce((acc, c) => {
@@ -23,19 +23,14 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
         return acc + (alloc ? alloc.amount : 0);
       }, 0);
 
-    // Total Paid Calculation (Net Cash Outflow)
-    // Part A: Money paid to external parties (Direct Project Costs)
     const directProjectPayments = costs
       .filter(c => c.status === 'APPROVED' && c.payerId === user.id)
       .reduce((acc, c) => acc + c.amount, 0);
 
-    // Part B: Money paid to friends (Internal Debt Repayment)
     const internalRepayments = costs
       .filter(c => c.status === 'APPROVED')
       .reduce((acc, c) => {
-        // If I am the payer of the cost, I don't repay myself here.
         if (c.payerId === user.id) return acc;
-
         const myAlloc = c.allocations.find(a => a.userId === user.id);
         if (myAlloc && myAlloc.payments) {
             const sumPayments = myAlloc.payments.reduce((sum, p) => sum + p.amount, 0);
@@ -44,7 +39,6 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
         return acc;
       }, 0);
 
-    // Part C: Money received from friends (Repayment In)
     const repaymentReceived = costs
       .filter(c => c.status === 'APPROVED' && c.payerId === user.id)
       .reduce((acc, c) => {
@@ -57,15 +51,12 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
          return acc + receivedFromOthers;
       }, 0);
 
-    // Net Cash Outflow = (Money Out) - (Money In)
     const totalPaid = (directProjectPayments + internalRepayments) - repaymentReceived;
 
-    // Receivables (People owe me)
     const receivables = debts
       .filter(d => d.creditorId === user.id)
       .reduce((acc, d) => acc + d.totalDebt, 0);
 
-    // Payables (I owe people)
     const payables = debts
       .filter(d => d.debtorId === user.id)
       .reduce((acc, d) => acc + d.totalDebt, 0);
@@ -76,42 +67,32 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
   // 2. Get Personal Transaction History
   const history = useMemo(() => {
     let items: any[] = [];
-
-    // Filter ONLY APPROVED costs for history
     costs.filter(c => c.status === 'APPROVED').forEach(c => {
-        // A. I paid for this cost
         if (c.payerId === user.id) {
             items.push({
                 id: `paid-${c.id}`,
                 date: c.date,
                 description: c.description,
-                type: 'PAID', // Chi tiền
+                type: 'PAID',
                 amount: c.amount,
                 detail: 'Đã chi cho dự án'
             });
         }
-
-        // B. I was allocated a share (My responsibility)
         const myAlloc = c.allocations.find(a => a.userId === user.id);
         if (myAlloc) {
              items.push({
                 id: `share-${c.id}`,
                 date: c.date,
                 description: c.description,
-                type: 'SHARE', // Ghi nhận nợ/trách nhiệm
+                type: 'SHARE',
                 amount: myAlloc.amount,
                 detail: `Phần đóng góp của bạn (${myAlloc.percentage.toFixed(0)}%)`
             });
         }
-
-        // C. Repayments logic (based on allocations)
         c.allocations.forEach(a => {
             if (a.payments) {
                 a.payments.forEach(p => {
                     const principal = p.amount;
-                    // Interest ignored
-
-                    // I paid someone back
                     if (a.userId === user.id) {
                         const receiver = users.find(u => u.id === c.payerId)?.name;
                         items.push({
@@ -123,7 +104,6 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                              detail: `Đã trả cho ${receiver}`
                         });
                     }
-                    // Someone paid me back
                     if (c.payerId === user.id && a.userId !== user.id) {
                         const sender = users.find(u => u.id === a.userId)?.name;
                         items.push({
@@ -139,7 +119,6 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
             }
         });
     });
-
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [costs, user.id, users]);
 
@@ -162,8 +141,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
              </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-8">
-             
+          <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
              {/* 1. Summary Cards */}
              <div className="space-y-3">
                  <div className="grid grid-cols-2 gap-3">
@@ -184,8 +162,6 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                         <p className="text-[10px] text-slate-500">Thực chi (Dự án + Gốc đã trả - Gốc thu hồi)</p>
                     </div>
                  </div>
-
-                 {/* Interest Row REMOVED */}
 
                  <div className="p-4 rounded-xl bg-slate-800 text-white shadow-lg">
                     <div className="flex items-center justify-between mb-2">
@@ -210,7 +186,7 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                  </div>
              </div>
 
-             {/* 2. Debt Details (Who owes whom) */}
+             {/* 2. Debt Details */}
              {(summary.receivables > 0 || summary.payables > 0) && (
                  <div>
                     <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase">Chi tiết nợ nần</h3>
@@ -262,6 +238,19 @@ export const PersonalReport: React.FC<PersonalReportProps> = ({ user, users, cos
                     ))}
                 </div>
              </div>
+             
+             {/* Logout Option for Mobile (at the bottom of the report) */}
+             {onLogout && (
+               <div className="pt-8 border-t border-slate-100">
+                  <button 
+                    onClick={onLogout}
+                    className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Đăng xuất tài khoản
+                  </button>
+               </div>
+             )}
 
           </div>
        </div>
