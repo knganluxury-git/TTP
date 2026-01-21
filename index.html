@@ -8,7 +8,7 @@
     
     <!-- PWA Config -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#F1F5F9" />
     
     <!-- iOS Specific PWA Config -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -65,6 +65,12 @@
       /* Mobile safe area for bottom nav */
       .pb-safe-bottom {
         padding-bottom: env(safe-area-inset-bottom, 20px);
+      }
+
+      /* Mobile safe area for TOP header (Notch/Dynamic Island) */
+      .pt-safe-top {
+        /* Base padding 20px + Device Safe Area */
+        padding-top: calc(20px + env(safe-area-inset-top));
       }
       
       /* Smooth slide up animation */

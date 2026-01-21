@@ -698,7 +698,7 @@ export default function App() {
             </header>
     
             {/* Content Area - Scrollable */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 space-y-6 pb-32 md:pb-8 scroll-smooth">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-32 pt-safe-top md:p-8 space-y-6 md:pb-8 scroll-smooth">
                {/* Mobile Header Logo */}
                <div className="md:hidden flex items-center justify-between mb-2">
                    <div className="flex items-center gap-2">
