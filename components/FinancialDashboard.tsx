@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
-import { chatWithFinancialAssistant } from '../services/geminiService';
 import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -19,58 +18,19 @@ interface FinancialDashboardProps {
   onMarkAsPaid: (costId: string, debtorId: string, amount: number, interest: number, paidDate: string) => void;
   onDismissPaymentCall: (stageId: string) => void;
   onUploadAttachments: (costId: string, files: File[]) => void;
-  // New props for controlling modal from App.tsx FAB
   externalShowAddForm?: boolean;
   setExternalShowAddForm?: (show: boolean) => void;
 }
-
-interface ChatMessage {
-    id: string;
-    role: 'user' | 'model';
-    text: string;
-    timestamp: number;
-}
-
-// Helper to render basic Markdown (Bold and Line breaks)
-const RenderMessageText = ({ text }: { text: string }) => {
-    return (
-        <div className="prose prose-sm max-w-none text-sm leading-relaxed text-slate-600">
-            {text.split('\n').map((line, lineIdx) => {
-                const parts = line.split(/(\*\*.*?\*\*)/g);
-                return (
-                    <p key={lineIdx} className={`mb-1 ${line.trim().startsWith('-') ? 'pl-2' : ''}`}>
-                        {parts.map((part, partIdx) => {
-                            if (part.startsWith('**') && part.endsWith('**')) {
-                                return <strong key={partIdx} className="font-bold text-slate-800">{part.slice(2, -2)}</strong>;
-                            }
-                            return <span key={partIdx}>{part}</span>;
-                        })}
-                    </p>
-                );
-            })}
-        </div>
-    );
-};
 
 export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ 
   costs, debts, users, currentUser, stages, defaultInterestRate, onUpdateDefaultSettings, onAddCost, onApproveCost, onMarkAsPaid, onDismissPaymentCall, onUploadAttachments,
   externalShowAddForm, setExternalShowAddForm
 }) => {
-  // Local state fallback if external props not provided
   const [localShowAddForm, setLocalShowAddForm] = useState(false);
   const showAddForm = externalShowAddForm !== undefined ? externalShowAddForm : localShowAddForm;
   const setShowAddForm = setExternalShowAddForm || setLocalShowAddForm;
 
   const [expandedCost, setExpandedCost] = useState<string | null>(null);
-
-  // --- AI Chat State ---
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của HTTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Payment Confirmation State
   const [confirmPayment, setConfirmPayment] = useState<{
@@ -84,13 +44,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   } | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
-
-  // Auto scroll chat
-  useEffect(() => {
-    if (isChatOpen) {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages, isTyping, isChatOpen]);
 
   // --- Payment Call Alerts ---
   const paymentCallStages = useMemo(() => {
@@ -218,23 +171,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       const status = calculateLoanStatus(initialPrincipal, transactionDate, 0, paymentsHistory);
       setConfirmPayment({ costId, debtorId, debtorName, initialPrincipal, paymentsHistory, transactionDate, interestRate: 0 });
       setPaymentAmountInput(Math.round(status.remainingPrincipal).toString());
-  };
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-      e?.preventDefault();
-      if (!chatInput.trim() || isTyping) return;
-      const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: chatInput, timestamp: Date.now() };
-      setChatMessages(prev => [...prev, userMsg]);
-      setChatInput('');
-      setIsTyping(true);
-      const context = { stages, costs, debts, users };
-      const answer = await chatWithFinancialAssistant(
-          userMsg.text, context, currentUser, 
-          chatMessages.map(m => ({role: m.role, text: m.text}))
-      );
-      const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: answer, timestamp: Date.now() };
-      setChatMessages(prev => [...prev, botMsg]);
-      setIsTyping(false);
   };
 
   const totalProjectCost = useMemo(() => {
@@ -384,12 +320,9 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                   return (
                       <div key={cost.id} onClick={() => setExpandedCost(expandedCost === cost.id ? null : cost.id)} className={`p-5 hover:bg-slate-50 transition-colors cursor-pointer group ${!isApproved ? 'bg-amber-50/30' : ''}`}>
                           <div className="flex items-start gap-4">
-                              {/* Icon/Avatar */}
                               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 font-bold text-sm shadow-sm mt-0.5 ${isApproved ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-600'}`}>
                                   {payer?.avatar}
                               </div>
-                              
-                              {/* Main Info */}
                               <div className="flex-1 min-w-0">
                                   <div className="flex flex-wrap items-start gap-x-2 gap-y-1 mb-1">
                                       <h4 className="font-bold text-slate-800 text-sm sm:text-base leading-snug break-words">{cost.description}</h4>
@@ -402,25 +335,17 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                       {cost.attachments && cost.attachments.length > 0 && <Paperclip className="w-3 h-3 text-slate-400" />}
                                   </div>
                               </div>
-
-                              {/* Amount */}
                               <div className="text-right">
                                   <div className="font-bold text-slate-900 font-mono text-base">{formatCurrency(cost.amount)}</div>
                                   <div className="text-[10px] text-slate-400 font-medium mt-0.5">
                                       {isApproved ? 'Đã duyệt' : 'Đang chờ'}
                                   </div>
                               </div>
-                              
                               <ChevronDown className={`w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-transform mt-1 ${expandedCost === cost.id ? 'rotate-180' : ''}`} />
                           </div>
-
-                          {/* EXPANDED DETAILS */}
                           {expandedCost === cost.id && (
                               <div className="mt-4 pt-4 border-t border-slate-100 pl-0 sm:pl-16 animate-in slide-in-from-top-2">
-                                  
-                                  {/* Action Buttons Row */}
                                   <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-                                      {/* Approve Button */}
                                       {!cost.approvedBy.includes(currentUser.id) && cost.status === 'PENDING' && (
                                           <button 
                                             onClick={(e) => { e.stopPropagation(); onApproveCost(cost.id); }}
@@ -429,8 +354,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                               <ThumbsUp className="w-4 h-4" /> Duyệt chi
                                           </button>
                                       )}
-                                      
-                                      {/* Upload Button */}
                                       {(currentUser.id === cost.payerId || currentUser.role === Role.ADMIN) && (
                                         <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-200 cursor-pointer transition-colors whitespace-nowrap">
                                             <input type="file" multiple className="hidden" onChange={(e) => {
@@ -440,8 +363,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                         </label>
                                       )}
                                   </div>
-
-                                  {/* Attachments Grid */}
                                   {cost.attachments && cost.attachments.length > 0 && (
                                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-4">
                                           {cost.attachments.map(att => (
@@ -457,8 +378,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           ))}
                                       </div>
                                   )}
-
-                                  {/* Allocation List */}
                                   <div className="bg-slate-50 rounded-xl px-3 py-2 text-sm space-y-1">
                                       {cost.allocations.map(a => {
                                           const u = users.find(user => user.id === a.userId);
@@ -467,17 +386,13 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           const canCollect = (currentUser.role === Role.ADMIN || currentUser.id === cost.payerId) && isApproved;
                                           const status = calculateLoanStatus(a.amount, cost.date, 0, a.payments || []);
                                           const isPaid = status.remainingPrincipal <= 0;
-
                                           return (
                                               <div key={a.userId} className="flex items-center justify-between py-3 border-b border-dashed border-slate-200 last:border-0 last:pb-1">
-                                                  {/* Left: User Info - No Avatar, No Truncate */}
                                                   <div className="flex items-center flex-1 min-w-0 mr-2">
                                                       <span className={`font-medium text-sm ${isMe ? 'text-blue-700' : 'text-slate-700'}`}>
                                                           {u?.name}
                                                       </span>
                                                   </div>
-                                                  
-                                                  {/* Right: Amount + Status + Action */}
                                                   <div className="flex items-center gap-3 flex-shrink-0">
                                                       <div className="text-right">
                                                           <div className={`font-mono font-bold text-sm sm:text-base tracking-tight whitespace-nowrap ${isPaid ? 'text-slate-400 decoration-slate-300' : 'text-slate-800'}`}>
@@ -489,8 +404,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                                               </div>
                                                           )}
                                                       </div>
-
-                                                      {/* Fixed width container for alignment */}
                                                       <div className="w-8 flex justify-end">
                                                           {isDebtor && (
                                                               isPaid ? (
@@ -524,52 +437,27 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
            </div>
       </div>
 
-      {/* 3. ADD COST BOTTOM SHEET (Mobile First Design) */}
+      {/* 3. ADD COST BOTTOM SHEET */}
       {(showAddForm) && (
           <div className="fixed inset-0 z-50 flex justify-center items-end md:items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-              {/* Overlay Click to close */}
               <div className="absolute inset-0" onClick={() => setShowAddForm(false)}></div>
-
               <div className="bg-white w-full md:max-w-lg md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden relative slide-up md:animate-in md:zoom-in-95 flex flex-col max-h-[90vh]">
-                  {/* Handle Bar for mobile feel */}
                   <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setShowAddForm(false)}>
                       <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
                   </div>
-
                   <form onSubmit={handleSubmit} className="flex flex-col h-full">
                       <div className="px-6 pt-4 pb-0 flex-shrink-0">
                           <h3 className="text-center text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Nhập chi phí mới</h3>
-                          {/* BIG AMOUNT INPUT */}
                           <div className="relative mb-6">
-                             <input 
-                                required
-                                type="number"
-                                value={amount}
-                                onChange={e => setAmount(e.target.value)}
-                                placeholder="0"
-                                className="w-full text-center text-5xl font-mono font-bold text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent py-2"
-                                autoFocus
-                             />
-                             <div className="text-center text-sm font-bold text-primary-600 mt-1 h-5">
-                                 {amount ? formatCurrency(parseInt(amount)) : 'VNĐ'}
-                             </div>
+                             <input required type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full text-center text-5xl font-mono font-bold text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent py-2" autoFocus />
+                             <div className="text-center text-sm font-bold text-primary-600 mt-1 h-5">{amount ? formatCurrency(parseInt(amount)) : 'VNĐ'}</div>
                           </div>
                       </div>
-
                       <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
-                          {/* Description */}
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Nội dung chi</label>
-                              <input 
-                                required 
-                                type="text" 
-                                value={description} 
-                                onChange={e => setDescription(e.target.value)} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-base font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" 
-                                placeholder="Ví dụ: Mua cát, xi măng..." 
-                              />
+                              <input required type="text" value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-base font-medium focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ví dụ: Mua cát, xi măng..." />
                           </div>
-
                           <div className="grid grid-cols-2 gap-4">
                               <div>
                                   <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Giai đoạn</label>
@@ -582,51 +470,31 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                   <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none" />
                               </div>
                           </div>
-
-                          {/* Payer Selection */}
                           <div>
                               <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Người chi tiền</label>
                               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                                   {users.map(u => (
-                                      <button
-                                        type="button"
-                                        key={u.id}
-                                        onClick={() => setPayerId(u.id)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all whitespace-nowrap ${payerId === u.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200'}`}
-                                      >
-                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${payerId === u.id ? 'bg-white text-slate-900' : 'bg-slate-100 text-slate-500'}`}>
-                                              {u.avatar}
-                                          </div>
+                                      <button type="button" key={u.id} onClick={() => setPayerId(u.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all whitespace-nowrap ${payerId === u.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200'}`}>
+                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${payerId === u.id ? 'bg-white text-slate-900' : 'bg-slate-100 text-slate-500'}`}>{u.avatar}</div>
                                           <span className="text-sm font-bold">{u.name}</span>
                                       </button>
                                   ))}
                               </div>
                           </div>
-
-                          {/* Allocation Toggle */}
                           <div className="bg-slate-50 rounded-xl p-1 flex">
                               <button type="button" onClick={() => setAllocType('EQUAL')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${allocType === 'EQUAL' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>Chia đều</button>
                               <button type="button" onClick={() => setAllocType('CUSTOM')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${allocType === 'CUSTOM' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>Tùy chỉnh</button>
                           </div>
-                          
                           {allocType === 'CUSTOM' && (
                               <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                   {users.map(u => (
                                       <div key={u.id} className="flex items-center gap-2">
                                           <label className="w-24 text-xs font-bold text-slate-600 truncate">{u.name}</label>
-                                          <input 
-                                            type="number" 
-                                            placeholder="0"
-                                            value={customAmounts[u.id] || ''}
-                                            onChange={e => setCustomAmounts(prev => ({...prev, [u.id]: e.target.value}))}
-                                            className="flex-1 border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-primary-500"
-                                          />
+                                          <input type="number" placeholder="0" value={customAmounts[u.id] || ''} onChange={e => setCustomAmounts(prev => ({...prev, [u.id]: e.target.value}))} className="flex-1 border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-primary-500" />
                                       </div>
                                   ))}
                               </div>
                           )}
-
-                          {/* File Upload */}
                           <div>
                               <div className="flex flex-wrap gap-2 mb-2">
                                   {selectedFiles.map((f, i) => (
@@ -636,18 +504,12 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                       </div>
                                   ))}
                               </div>
-                              <button 
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full py-3 border border-dashed border-slate-300 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-50 hover:border-primary-300 hover:text-primary-600 transition-all flex items-center justify-center gap-2"
-                              >
+                              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-3 border border-dashed border-slate-300 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-50 hover:border-primary-300 hover:text-primary-600 transition-all flex items-center justify-center gap-2">
                                   <Paperclip className="w-4 h-4" /> Đính kèm hóa đơn / ảnh
                               </button>
                               <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileChange} />
                           </div>
                       </div>
-
-                      {/* Footer Actions */}
                       <div className="p-4 border-t border-slate-100 bg-white flex-shrink-0 pb-safe-bottom">
                           <button type="submit" className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl shadow-xl shadow-primary-200 active:scale-[0.98] transition-all text-lg flex items-center justify-center gap-2">
                               <Check className="w-6 h-6" /> Lưu Chi Phí
@@ -658,70 +520,15 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
           </div>
       )}
 
-      {/* AI CHAT WIDGET */}
-      <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 print:hidden">
-          <button 
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className={`p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center border-4 border-white ${isChatOpen ? 'bg-slate-800 text-white rotate-90 scale-90' : 'bg-gradient-to-r from-primary-600 to-accent-500 text-white hover:scale-110'}`}
-          >
-              {isChatOpen ? <X className="w-6 h-6" /> : <Sparkles className="w-6 h-6 animate-pulse" />}
-          </button>
-      </div>
-
-      {isChatOpen && (
-          <div className="fixed bottom-36 md:bottom-24 right-4 md:right-6 w-[90vw] md:w-[400px] h-[500px] max-h-[60vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col z-40 overflow-hidden animate-in slide-in-from-bottom-10 fade-in zoom-in-95 origin-bottom-right">
-              {/* Chat Header */}
-              <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
-                  <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
-                          <Bot className="w-5 h-5" />
-                      </div>
-                      <div>
-                          <h3 className="font-bold text-sm">Trợ lý Tài chính</h3>
-                          <div className="flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                              <span className="text-[10px] text-slate-300">Sẵn sàng</span>
-                          </div>
-                      </div>
-                  </div>
-                  <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white"><Minimize2 className="w-5 h-5" /></button>
-              </div>
-
-              {/* Chat Body */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-                  {chatMessages.map(msg => (
-                      <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                          <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${msg.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 rounded-tl-none'}`}>
-                              {msg.role === 'model' ? <RenderMessageText text={msg.text} /> : msg.text}
-                          </div>
-                      </div>
-                  ))}
-                  {isTyping && (
-                      <div className="flex gap-2">
-                           <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none flex gap-1">
-                               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
-                               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></span>
-                               <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></span>
-                           </div>
-                      </div>
-                  )}
-                  <div ref={chatEndRef}></div>
-              </div>
-
-              {/* Chat Input */}
-              <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
-                  <input 
-                    type="text" 
-                    value={chatInput} 
-                    onChange={e => setChatInput(e.target.value)} 
-                    onKeyDown={e => e.key === 'Enter' && handleSendMessage(e)}
-                    placeholder="Hỏi gì đó..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary-500"
-                  />
-                  <button onClick={handleSendMessage} disabled={!chatInput.trim()} className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50">
-                      <Send className="w-4 h-4" />
-                  </button>
-              </div>
+      {/* NÚT THÊM CHI PHÍ (FLOATING) - CHỈ ADMIN & TRANG HOME */}
+      {currentUser.role === Role.ADMIN && (
+          <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 print:hidden">
+              <button 
+                  onClick={() => setShowAddForm(true)}
+                  className="p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center border-4 border-white bg-gradient-to-r from-accent-500 to-orange-600 text-white hover:scale-110 active:scale-90"
+              >
+                  <Plus className="w-6 h-6" strokeWidth={3} />
+              </button>
           </div>
       )}
 
@@ -731,24 +538,15 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
             <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95">
                <h3 className="text-xl font-bold text-slate-900 text-center mb-1">Xác nhận thu tiền</h3>
                <p className="text-slate-500 text-center text-sm mb-6">Từ <span className="font-bold text-slate-800">{confirmPayment.debtorName}</span></p>
-
                <div className="bg-slate-50 rounded-2xl p-4 mb-4 border border-slate-100">
                   <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Còn nợ</span>
                       <span className="text-sm font-bold text-slate-700">{formatCurrency(paymentDetails.remainingBeforePay)}</span>
                   </div>
-                  
                   <div className="flex items-center gap-2 bg-white border border-primary-200 rounded-xl px-3 py-2 shadow-sm">
                       <DollarSign className="w-5 h-5 text-primary-600" />
-                      <input 
-                        type="number" 
-                        value={paymentAmountInput}
-                        onChange={e => setPaymentAmountInput(e.target.value)}
-                        className="flex-1 font-mono text-xl font-bold text-primary-700 outline-none"
-                        autoFocus
-                      />
+                      <input type="number" value={paymentAmountInput} onChange={e => setPaymentAmountInput(e.target.value)} className="flex-1 font-mono text-xl font-bold text-primary-700 outline-none" autoFocus />
                   </div>
-                  
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200">
                       <span className="text-xs font-bold text-slate-400 uppercase">Sau khi trả</span>
                       <span className={`text-sm font-bold ${paymentDetails.remainingAfterPay === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
@@ -756,7 +554,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                       </span>
                   </div>
                </div>
-               
                <div className="grid grid-cols-2 gap-3">
                    <button onClick={() => setConfirmPayment(null)} className="py-3 text-slate-600 font-bold hover:bg-slate-50 rounded-xl transition">Hủy</button>
                    <button onClick={() => {
@@ -770,7 +567,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
             </div>
          </div>
       )}
-
     </div>
   );
 };

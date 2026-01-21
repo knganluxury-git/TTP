@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { INITIAL_USERS, DEFAULT_INTEREST_RATE_YEARLY, APP_LOGO } from './constants';
 import { User, Stage, Cost, DebtRecord, Role, StageStatus, Payment, Topic, TopicStatus, TopicComment, Attachment } from './types';
 import { calculateDebts, formatCurrency } from './utils/finance';
@@ -10,11 +10,40 @@ import { PersonalReport } from './components/PersonalReport';
 import { DiscussionBoard } from './components/DiscussionBoard';
 import { Login } from './components/Login';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
-import { LayoutGrid, Calendar, History, Users, LogOut, Loader2, Settings2, Plus, FileBarChart } from 'lucide-react';
+import { LayoutGrid, Calendar, History, Users, LogOut, Loader2, Settings2, Plus, FileBarChart, Sparkles, X, Send, Bot, Minimize2 } from 'lucide-react';
 import { tryInitFirebase, getFirebaseAuth, getFirebaseDb, resetFirebaseConfig, getFirebaseStorage } from './firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, orderBy, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { chatWithFinancialAssistant } from './services/geminiService';
+
+interface ChatMessage {
+    id: string;
+    role: 'user' | 'model';
+    text: string;
+    timestamp: number;
+}
+
+// Helper to render basic Markdown in AI Chat
+const RenderMessageText = ({ text }: { text: string }) => {
+    return (
+        <div className="prose prose-sm max-w-none text-sm leading-relaxed text-slate-600">
+            {text.split('\n').map((line, lineIdx) => {
+                const parts = line.split(/(\*\*.*?\*\*)/g);
+                return (
+                    <p key={lineIdx} className={`mb-1 ${line.trim().startsWith('-') ? 'pl-2' : ''}`}>
+                        {parts.map((part, partIdx) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                                return <strong key={partIdx} className="font-bold text-slate-800">{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={partIdx}>{part}</span>;
+                        })}
+                    </p>
+                );
+            })}
+        </div>
+    );
+};
 
 export default function App() {
   // --- Config & Auth State ---
@@ -32,8 +61,24 @@ export default function App() {
   const [view, setView] = useState<'DASHBOARD' | 'TIMELINE' | 'ACTIVITY' | 'DISCUSSION'>('DASHBOARD');
   const [showPersonalReport, setShowPersonalReport] = useState(false);
   
-  // Lifted State for FAB to control Add Cost Modal
+  // State for Add Cost Modal (controlled by Dashboard floating button)
   const [showAddCostModal, setShowAddCostModal] = useState(false);
+
+  // --- AI Chat State (Global) ---
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+      { id: 'init', role: 'model', text: 'Xin chào! Tôi là trợ lý tài chính của HTTP Home. \nBạn cần xem **tổng quan công nợ**, **chi phí dự án** hay **tiến độ** không?', timestamp: Date.now() }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll chat
+  useEffect(() => {
+    if (isChatOpen) {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isTyping, isChatOpen]);
   
   // --- 1. Init Firebase on Mount ---
   useEffect(() => {
@@ -442,13 +487,25 @@ export default function App() {
       });
   };
 
+  // FAB Trung tâm giờ đây điều khiển AI
   const handleFABClick = () => {
-    // If we are not in dashboard, switch to it
-    if (view !== 'DASHBOARD') {
-        setView('DASHBOARD');
-    }
-    // Open the modal (The dashboard will listen to this prop)
-    setShowAddCostModal(true);
+    setIsChatOpen(prev => !prev);
+  };
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
+      if (!chatInput.trim() || isTyping || !currentUser) return;
+      const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: chatInput, timestamp: Date.now() };
+      setChatMessages(prev => [...prev, userMsg]);
+      setChatInput('');
+      setIsTyping(true);
+      const context = { stages: stagesWithCalculatedCosts, costs, debts, users };
+      const answer = await chatWithFinancialAssistant(
+          userMsg.text, context, currentUser, 
+          chatMessages.map(m => ({role: m.role, text: m.text}))
+      );
+      const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: answer, timestamp: Date.now() };
+      setChatMessages(prev => [...prev, botMsg]);
+      setIsTyping(false);
   };
 
   // 4. Main App Render Logic
@@ -540,7 +597,6 @@ export default function App() {
             onMarkAsPaid={handlePayment}
             onDismissPaymentCall={handleDismissPaymentCall}
             onUploadAttachments={handleUploadAttachments}
-            // Passing down the lifted state for Modal control
             externalShowAddForm={showAddCostModal}
             setExternalShowAddForm={setShowAddCostModal}
             />
@@ -662,13 +718,13 @@ export default function App() {
                 <MobileNavButton active={view === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} icon={LayoutGrid} label="Home" />
                 <MobileNavButton active={view === 'TIMELINE'} onClick={() => setView('TIMELINE')} icon={Calendar} label="Tiến độ" />
                 
-                {/* FAB (Floating Action Button) - Centered */}
+                {/* FAB (Floating Action Button) - GIỜ LÀ NÚT AI */}
                 <div className="relative -top-6">
                     <button 
                         onClick={handleFABClick}
-                        className="w-14 h-14 rounded-full bg-accent-500 text-white shadow-xl shadow-accent-500/40 flex items-center justify-center transform active:scale-95 transition-all border-4 border-slate-100"
+                        className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transform active:scale-95 transition-all border-4 border-slate-100 ${isChatOpen ? 'bg-slate-800 text-white' : 'bg-gradient-to-r from-primary-600 to-accent-500 text-white shadow-primary-500/40'}`}
                     >
-                        <Plus className="w-8 h-8" strokeWidth={3} />
+                        {isChatOpen ? <X className="w-6 h-6" /> : <Sparkles className="w-8 h-8 animate-pulse" strokeWidth={2.5} />}
                     </button>
                 </div>
 
@@ -678,6 +734,63 @@ export default function App() {
 
           </main>
     
+          {/* AI CHAT WIDGET (Toàn cục) */}
+          {isChatOpen && (
+              <div className="fixed bottom-36 md:bottom-24 right-4 md:right-6 w-[90vw] md:w-[400px] h-[500px] max-h-[60vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col z-40 overflow-hidden animate-in slide-in-from-bottom-10 fade-in zoom-in-95 origin-bottom-right">
+                  {/* Chat Header */}
+                  <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
+                      <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
+                              <Bot className="w-5 h-5" />
+                          </div>
+                          <div>
+                              <h3 className="font-bold text-sm">Trợ lý Tài chính</h3>
+                              <div className="flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                                  <span className="text-[10px] text-slate-300">Sẵn sàng</span>
+                              </div>
+                          </div>
+                      </div>
+                      <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white"><Minimize2 className="w-5 h-5" /></button>
+                  </div>
+
+                  {/* Chat Body */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                      {chatMessages.map(msg => (
+                          <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                              <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${msg.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 rounded-tl-none'}`}>
+                                  {msg.role === 'model' ? <RenderMessageText text={msg.text} /> : msg.text}
+                              </div>
+                          </div>
+                      ))}
+                      {isTyping && (
+                          <div className="flex gap-2">
+                               <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none flex gap-1">
+                                   <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                                   <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></span>
+                                   <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></span>
+                               </div>
+                          </div>
+                      )}
+                      <div ref={chatEndRef}></div>
+                  </div>
+
+                  {/* Chat Input */}
+                  <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="p-3 bg-white border-t border-slate-100 flex gap-2">
+                      <input 
+                        type="text" 
+                        value={chatInput} 
+                        onChange={e => setChatInput(e.target.value)} 
+                        placeholder="Hỏi gì đó..."
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary-500"
+                      />
+                      <button type="submit" disabled={!chatInput.trim()} className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50">
+                          <Send className="w-4 h-4" />
+                      </button>
+                  </form>
+              </div>
+          )}
+
           {/* Personal Report Modal */}
           {showPersonalReport && (
             <PersonalReport 
