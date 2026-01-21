@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
-import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal } from 'lucide-react';
+import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Delete, Calendar, Calculator } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface FinancialDashboardProps {
@@ -89,7 +89,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
   // Form State
   const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState(''); 
+  const [amountStr, setAmountStr] = useState('0'); // Use String for Numpad logic
   const [stageId, setStageId] = useState('');
   const [payerId, setPayerId] = useState(currentUser.id);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -100,11 +100,29 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Focus state for Numpad vs Text Input
+  const [activeInput, setActiveInput] = useState<'AMOUNT' | 'DESCRIPTION'>('AMOUNT');
+
   useEffect(() => {
     if (!stageId && stages.length > 0) {
-        setStageId(stages[0].id);
+        // Default to the first "IN_PROGRESS" stage, or the last added stage
+        const activeStage = stages.find(s => s.status === 'Đang thực hiện') || stages[stages.length - 1];
+        if (activeStage) setStageId(activeStage.id);
     }
-  }, [stages, stageId]);
+  }, [stages, stageId, showAddForm]);
+
+  // Reset form when opening
+  useEffect(() => {
+    if (showAddForm) {
+        setAmountStr('0');
+        setDescription('');
+        setDate(new Date().toISOString().split('T')[0]);
+        setPayerId(currentUser.id);
+        setSelectedFiles([]);
+        setAllocType('EQUAL');
+        setActiveInput('AMOUNT');
+    }
+  }, [showAddForm, currentUser.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -117,11 +135,36 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const numAmount = parseInt(amount || '0', 10);
+  // --- Numpad Logic ---
+  const handleNumClick = (val: string) => {
+      if (activeInput !== 'AMOUNT') return;
+
+      if (val === 'DEL') {
+          setAmountStr(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
+      } else if (val === 'AC') {
+          setAmountStr('0');
+      } else if (val === '000') {
+          setAmountStr(prev => prev === '0' ? '0' : prev + '000');
+      } else {
+          setAmountStr(prev => prev === '0' ? val : prev + val);
+      }
+  };
+
+  const handleQuickDate = (type: 'TODAY' | 'YESTERDAY') => {
+      const d = new Date();
+      if (type === 'YESTERDAY') d.setDate(d.getDate() - 1);
+      setDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const numAmount = parseInt(amountStr.replace(/\D/g, '') || '0', 10);
     
-    if (!description || !numAmount || !stageId) return;
+    if (!description || numAmount === 0 || !stageId) {
+        if (numAmount === 0) alert("Vui lòng nhập số tiền!");
+        else if (!description) alert("Vui lòng nhập nội dung!");
+        return;
+    }
 
     let allocations = [];
     if (allocType === 'EQUAL') {
@@ -160,10 +203,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     }, selectedFiles);
     
     setShowAddForm(false);
-    setDescription('');
-    setAmount('');
-    setCustomAmounts({});
-    setSelectedFiles([]);
   };
 
   const handleOpenPaymentConfirm = (costId: string, debtorId: string, debtorName: string, initialPrincipal: number, paymentsHistory: any[], transactionDate: string, interestRate: number) => {
@@ -177,7 +216,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
     return costs.filter(c => c.status === 'APPROVED').reduce((sum, c) => sum + c.amount, 0);
   }, [costs]);
 
-  // Current User Net Position
   const myNetPosition = useMemo(() => {
       const myDebts = debts.filter(d => d.debtorId === currentUser.id);
       const totalOwed = myDebts.reduce((acc, d) => acc + d.totalDebt, 0);
@@ -185,6 +223,18 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       const totalReceivable = othersDebtsToMe.reduce((acc, d) => acc + d.totalDebt, 0);
       return { totalOwed, totalReceivable, net: totalReceivable - totalOwed };
   }, [debts, currentUser.id]);
+
+  // Helper for rendering Stage Pills
+  const renderStagePill = (s: Stage) => (
+      <button 
+        key={s.id} 
+        type="button" 
+        onClick={() => setStageId(s.id)} 
+        className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${stageId === s.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-500 border-slate-200'}`}
+      >
+          {s.name}
+      </button>
+  );
 
   return (
     <div className="space-y-6 relative pb-20 md:pb-0">
@@ -225,7 +275,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
       {/* 1. HERO SECTION & WALLET */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Total Cost Card */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-10 bg-slate-50 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
                <div>
@@ -244,7 +293,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                </div>
           </div>
 
-          {/* My Wallet Card (Net Position) */}
           <div className={`p-6 rounded-3xl border shadow-sm flex flex-col justify-between h-48 md:h-56 relative overflow-hidden transition-all ${myNetPosition.net >= 0 ? 'bg-white border-slate-200' : 'bg-white border-red-100'}`}>
               <div>
                    <p className="text-slate-500 font-medium text-sm flex items-center gap-2 mb-3">
@@ -273,7 +321,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
               </div>
           </div>
           
-          {/* Quick Stats / Mini Chart (Desktop) */}
           <div className="hidden lg:flex bg-slate-850 p-6 rounded-3xl text-white flex-col justify-between h-56 shadow-lg shadow-slate-200">
               <div>
                   <h3 className="font-bold text-lg mb-1">Tỷ lệ đóng góp</h3>
@@ -281,7 +328,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
               </div>
               <div className="flex-1 flex items-end gap-2 pb-2">
                   {users.map((u, i) => {
-                       // Calculate roughly for visual
                        const totalShare = costs.filter(c => c.status === 'APPROVED').reduce((acc, c) => {
                             const userAlloc = c.allocations.find(a => a.userId === u.id);
                             return acc + (userAlloc ? userAlloc.amount : 0);
@@ -378,57 +424,6 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           ))}
                                       </div>
                                   )}
-                                  <div className="bg-slate-50 rounded-xl px-3 py-2 text-sm space-y-1">
-                                      {cost.allocations.map(a => {
-                                          const u = users.find(user => user.id === a.userId);
-                                          const isMe = u?.id === currentUser.id;
-                                          const isDebtor = a.userId !== cost.payerId;
-                                          const canCollect = (currentUser.role === Role.ADMIN || currentUser.id === cost.payerId) && isApproved;
-                                          const status = calculateLoanStatus(a.amount, cost.date, 0, a.payments || []);
-                                          const isPaid = status.remainingPrincipal <= 0;
-                                          return (
-                                              <div key={a.userId} className="flex items-center justify-between py-3 border-b border-dashed border-slate-200 last:border-0 last:pb-1">
-                                                  <div className="flex items-center flex-1 min-w-0 mr-2">
-                                                      <span className={`font-medium text-sm ${isMe ? 'text-blue-700' : 'text-slate-700'}`}>
-                                                          {u?.name}
-                                                      </span>
-                                                  </div>
-                                                  <div className="flex items-center gap-3 flex-shrink-0">
-                                                      <div className="text-right">
-                                                          <div className={`font-mono font-bold text-sm sm:text-base tracking-tight whitespace-nowrap ${isPaid ? 'text-slate-400 decoration-slate-300' : 'text-slate-800'}`}>
-                                                              {formatCurrency(a.amount)}
-                                                          </div>
-                                                          {isDebtor && a.paidAmount > 0 && !isPaid && (
-                                                              <div className="text-[10px] text-emerald-600 font-bold mt-0.5 whitespace-nowrap">
-                                                                  Đã trả: {formatCurrency(a.paidAmount)}
-                                                              </div>
-                                                          )}
-                                                      </div>
-                                                      <div className="w-8 flex justify-end">
-                                                          {isDebtor && (
-                                                              isPaid ? (
-                                                                  <div className="bg-emerald-100 text-emerald-600 p-1.5 rounded-full"><Check className="w-4 h-4" /></div>
-                                                              ) : (
-                                                                  canCollect && (
-                                                                      <button 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleOpenPaymentConfirm(cost.id, a.userId, u?.name || '', a.amount, a.payments || [], cost.date, 0);
-                                                                        }}
-                                                                        className="p-1.5 bg-white border border-slate-200 text-primary-600 rounded-lg shadow-sm hover:bg-primary-50 transition-colors"
-                                                                        title="Thu tiền"
-                                                                      >
-                                                                          <DollarSign className="w-4 h-4" />
-                                                                      </button>
-                                                                  )
-                                                              )
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                          )
-                                      })}
-                                  </div>
                               </div>
                           )}
                       </div>
@@ -437,64 +432,90 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
            </div>
       </div>
 
-      {/* 3. ADD COST BOTTOM SHEET */}
+      {/* 3. NEW ADD COST MODAL (CUSTOM NUMPAD) */}
       {(showAddForm) && (
-          <div className="fixed inset-0 z-50 flex justify-center items-end md:items-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="absolute inset-0" onClick={() => setShowAddForm(false)}></div>
-              <div className="bg-white w-full md:max-w-lg md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden relative slide-up md:animate-in md:zoom-in-95 flex flex-col max-h-[90vh]">
-                  <div className="md:hidden w-full flex justify-center pt-3 pb-1" onClick={() => setShowAddForm(false)}>
+              
+              <div className="bg-white w-full md:max-w-md h-[95vh] md:h-auto md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden relative slide-up flex flex-col">
+                  {/* Handle Bar */}
+                  <div className="w-full flex justify-center pt-3 pb-2" onClick={() => setShowAddForm(false)}>
                       <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
                   </div>
-                  <form onSubmit={handleSubmit} className="flex flex-col h-full">
-                      <div className="px-6 pt-4 pb-0 flex-shrink-0">
-                          <h3 className="text-center text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Nhập chi phí mới</h3>
-                          <div className="relative mb-6">
-                             <input required type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full text-center text-5xl font-mono font-bold text-slate-800 placeholder-slate-200 focus:outline-none bg-transparent py-2" autoFocus />
-                             <div className="text-center text-sm font-bold text-primary-600 mt-1 h-5">{amount ? formatCurrency(parseInt(amount)) : 'VNĐ'}</div>
+
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                      {/* --- TOP SECTION: DISPLAY & INPUTS --- */}
+                      <div className="px-6 flex-shrink-0">
+                          {/* Amount Display */}
+                          <div className="flex flex-col items-center justify-center py-4 cursor-pointer" onClick={() => setActiveInput('AMOUNT')}>
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Số tiền</span>
+                              <div className={`text-5xl font-mono font-bold tracking-tight transition-colors ${activeInput === 'AMOUNT' ? 'text-primary-600' : 'text-slate-800'}`}>
+                                  {formatCurrency(parseInt(amountStr)).replace('₫', '')}
+                              </div>
+                              <span className="text-sm font-bold text-slate-400 mt-1">VNĐ</span>
+                          </div>
+
+                          {/* Description Input */}
+                          <div className="mb-4">
+                              <div className={`flex items-center gap-3 bg-slate-50 border rounded-2xl px-4 py-3 transition-all ${activeInput === 'DESCRIPTION' ? 'border-primary-500 ring-1 ring-primary-500 bg-white' : 'border-slate-200'}`}>
+                                  <FileText className={`w-5 h-5 ${activeInput === 'DESCRIPTION' ? 'text-primary-500' : 'text-slate-400'}`} />
+                                  <input 
+                                    type="text" 
+                                    value={description} 
+                                    onChange={e => setDescription(e.target.value)}
+                                    onFocus={() => setActiveInput('DESCRIPTION')}
+                                    className="flex-1 bg-transparent border-none outline-none text-slate-800 font-medium placeholder-slate-400 text-base"
+                                    placeholder="Chi cho việc gì?" 
+                                  />
+                              </div>
                           </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5">
+
+                      {/* --- MIDDLE SECTION: SCROLLABLE SELECTORS --- */}
+                      <div className="flex-1 overflow-y-auto px-6 space-y-5 pb-4">
+                          {/* 1. Stage Selector (Horizontal) */}
                           <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Nội dung chi</label>
-                              <input required type="text" value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-base font-medium focus:ring-2 focus:ring-primary-500 outline-none transition-all" placeholder="Ví dụ: Mua cát, xi măng..." />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Giai đoạn</label>
-                                  <select value={stageId} onChange={e => setStageId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none">
-                                      {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                  </select>
-                              </div>
-                              <div>
-                                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Ngày chi</label>
-                                  <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none" />
+                              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Giai đoạn</label>
+                              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-2 px-2">
+                                  {stages.map(renderStagePill)}
                               </div>
                           </div>
+
+                          {/* 2. Date Selector */}
                           <div>
-                              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Người chi tiền</label>
-                              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                                  {users.map(u => (
-                                      <button type="button" key={u.id} onClick={() => setPayerId(u.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all whitespace-nowrap ${payerId === u.id ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-600 border-slate-200'}`}>
-                                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${payerId === u.id ? 'bg-white text-slate-900' : 'bg-slate-100 text-slate-500'}`}>{u.avatar}</div>
-                                          <span className="text-sm font-bold">{u.name}</span>
-                                      </button>
-                                  ))}
-                              </div>
+                               <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Ngày chi</label>
+                               <div className="flex items-center gap-2">
+                                   <button type="button" onClick={() => handleQuickDate('TODAY')} className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200">Hôm nay</button>
+                                   <button type="button" onClick={() => handleQuickDate('YESTERDAY')} className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200">Hôm qua</button>
+                                   <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
+                                   <div className="flex-1 relative">
+                                        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-2 text-xs font-bold outline-none text-slate-700" />
+                                        <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                   </div>
+                               </div>
                           </div>
-                          <div className="bg-slate-50 rounded-xl p-1 flex">
-                              <button type="button" onClick={() => setAllocType('EQUAL')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${allocType === 'EQUAL' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>Chia đều</button>
-                              <button type="button" onClick={() => setAllocType('CUSTOM')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${allocType === 'CUSTOM' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400'}`}>Tùy chỉnh</button>
+
+                          {/* 3. Payer & Allocation */}
+                          <div>
+                               <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Người trả tiền</label>
+                               <div className="flex gap-3 overflow-x-auto no-scrollbar">
+                                   {users.map(u => (
+                                       <button 
+                                          key={u.id} 
+                                          type="button" 
+                                          onClick={() => setPayerId(u.id)}
+                                          className={`flex flex-col items-center gap-1 min-w-[60px] p-2 rounded-xl border transition-all ${payerId === u.id ? 'bg-primary-50 border-primary-500' : 'bg-white border-slate-100'}`}
+                                       >
+                                           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${payerId === u.id ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                               {u.avatar}
+                                           </div>
+                                           <span className={`text-[10px] font-bold ${payerId === u.id ? 'text-primary-700' : 'text-slate-400'}`}>{u.name}</span>
+                                       </button>
+                                   ))}
+                               </div>
                           </div>
-                          {allocType === 'CUSTOM' && (
-                              <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                  {users.map(u => (
-                                      <div key={u.id} className="flex items-center gap-2">
-                                          <label className="w-24 text-xs font-bold text-slate-600 truncate">{u.name}</label>
-                                          <input type="number" placeholder="0" value={customAmounts[u.id] || ''} onChange={e => setCustomAmounts(prev => ({...prev, [u.id]: e.target.value}))} className="flex-1 border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-primary-500" />
-                                      </div>
-                                  ))}
-                              </div>
-                          )}
+                          
+                          {/* File Attachment */}
                           <div>
                               <div className="flex flex-wrap gap-2 mb-2">
                                   {selectedFiles.map((f, i) => (
@@ -504,18 +525,54 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                       </div>
                                   ))}
                               </div>
-                              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-3 border border-dashed border-slate-300 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-50 hover:border-primary-300 hover:text-primary-600 transition-all flex items-center justify-center gap-2">
-                                  <Paperclip className="w-4 h-4" /> Đính kèm hóa đơn / ảnh
+                              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-xs font-bold text-primary-600 bg-primary-50 px-3 py-2 rounded-lg hover:bg-primary-100 transition-colors">
+                                  <Paperclip className="w-4 h-4" /> Đính kèm ảnh hóa đơn
                               </button>
                               <input type="file" multiple ref={fileInputRef} className="hidden" onChange={handleFileChange} />
                           </div>
                       </div>
-                      <div className="p-4 border-t border-slate-100 bg-white flex-shrink-0 pb-safe-bottom">
-                          <button type="submit" className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-2xl shadow-xl shadow-primary-200 active:scale-[0.98] transition-all text-lg flex items-center justify-center gap-2">
-                              <Check className="w-6 h-6" /> Lưu Chi Phí
-                          </button>
-                      </div>
-                  </form>
+
+                      {/* --- BOTTOM SECTION: NUMPAD --- */}
+                      {/* Only show Numpad if Amount is focused (default) */}
+                      {activeInput === 'AMOUNT' && (
+                          <div className="bg-slate-50 border-t border-slate-200 p-2 pb-safe-bottom">
+                              <div className="grid grid-cols-4 gap-2 h-64 md:h-72">
+                                  {/* Numbers */}
+                                  <button type="button" onClick={() => handleNumClick('1')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">1</button>
+                                  <button type="button" onClick={() => handleNumClick('2')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">2</button>
+                                  <button type="button" onClick={() => handleNumClick('3')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">3</button>
+                                  <button type="button" onClick={() => handleNumClick('DEL')} className="bg-slate-200 rounded-xl shadow-sm text-slate-600 flex items-center justify-center active:bg-slate-300"><Delete className="w-6 h-6" /></button>
+                                  
+                                  <button type="button" onClick={() => handleNumClick('4')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">4</button>
+                                  <button type="button" onClick={() => handleNumClick('5')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">5</button>
+                                  <button type="button" onClick={() => handleNumClick('6')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">6</button>
+                                  <button type="button" onClick={() => handleNumClick('AC')} className="bg-slate-200 rounded-xl shadow-sm text-sm font-bold text-slate-500 active:bg-slate-300">XÓA</button>
+
+                                  <button type="button" onClick={() => handleNumClick('7')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">7</button>
+                                  <button type="button" onClick={() => handleNumClick('8')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">8</button>
+                                  <button type="button" onClick={() => handleNumClick('9')} className="bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">9</button>
+                                  
+                                  {/* Submit Button Span 2 Rows */}
+                                  <button type="button" onClick={() => handleSubmit()} className="row-span-2 bg-primary-600 rounded-xl shadow-lg shadow-primary-200 text-white font-bold text-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+                                      <Check className="w-8 h-8" />
+                                      <span className="text-xs">LƯU</span>
+                                  </button>
+
+                                  <button type="button" onClick={() => handleNumClick('000')} className="bg-white rounded-xl shadow-sm text-lg font-bold text-slate-600 active:bg-slate-200">000</button>
+                                  <button type="button" onClick={() => handleNumClick('0')} className="col-span-2 bg-white rounded-xl shadow-sm text-2xl font-bold text-slate-700 active:bg-slate-200">0</button>
+                              </div>
+                          </div>
+                      )}
+                      
+                      {/* Fallback Submit Button if Numpad hidden (e.g., Typing description) */}
+                      {activeInput !== 'AMOUNT' && (
+                          <div className="p-4 border-t border-slate-100 bg-white pb-safe-bottom">
+                              <button type="button" onClick={() => handleSubmit()} className="w-full py-3 bg-primary-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
+                                  <Check className="w-5 h-5" /> Lưu Chi Phí
+                              </button>
+                          </div>
+                      )}
+                  </div>
               </div>
           </div>
       )}
