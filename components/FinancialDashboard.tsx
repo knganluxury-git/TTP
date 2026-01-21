@@ -522,7 +522,7 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
 
       {/* NÚT THÊM CHI PHÍ (FLOATING) - CHỈ ADMIN & TRANG HOME */}
       {currentUser.role === Role.ADMIN && (
-          <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 print:hidden">
+          <div className="fixed bottom-28 md:bottom-6 right-4 md:right-6 z-40 print:hidden">
               <button 
                   onClick={() => setShowAddForm(true)}
                   className="p-3.5 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center border-4 border-white bg-gradient-to-r from-accent-500 to-orange-600 text-white hover:scale-110 active:scale-90"
