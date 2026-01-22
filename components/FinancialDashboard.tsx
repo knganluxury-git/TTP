@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
-import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Delete, Calendar, Calculator } from 'lucide-react';
+import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Delete, Calendar, Calculator, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface FinancialDashboardProps {
@@ -409,6 +409,8 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                         </label>
                                       )}
                                   </div>
+                                  
+                                  {/* Attachments */}
                                   {cost.attachments && cost.attachments.length > 0 && (
                                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-4">
                                           {cost.attachments.map(att => (
@@ -424,6 +426,76 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                           ))}
                                       </div>
                                   )}
+
+                                  {/* --- NEW: ALLOCATION LIST --- */}
+                                  <div className="mt-4 pt-4 border-t border-slate-100">
+                                      <div className="flex items-center gap-2 mb-3">
+                                          <PieChart className="w-4 h-4 text-slate-400" />
+                                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Chi tiết phân bổ</span>
+                                      </div>
+                                      <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                                          {cost.allocations.map(alloc => {
+                                              const allocUser = users.find(u => u.id === alloc.userId);
+                                              const isPayer = alloc.userId === cost.payerId;
+                                              const isMe = currentUser.id === alloc.userId;
+                                              const paid = alloc.paidAmount || 0;
+                                              const total = alloc.amount;
+                                              // Allow collection if: Current User is Payer (or Admin), Target is NOT Payer, and NOT fully paid
+                                              const canCollect = (currentUser.id === cost.payerId || currentUser.role === Role.ADMIN) && !isPayer && !alloc.isPaid;
+
+                                              return (
+                                                  <div key={alloc.userId} className="p-3 border-b border-slate-100 last:border-0 flex items-center justify-between hover:bg-white transition-colors">
+                                                      <div className="flex items-center gap-3">
+                                                          <div className="relative">
+                                                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isPayer ? 'bg-amber-100 text-amber-700' : 'bg-white border border-slate-200 text-slate-600'}`}>
+                                                                  {allocUser?.avatar}
+                                                              </div>
+                                                              {isPayer && <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white text-[8px] px-1 rounded-full font-bold">Chi</div>}
+                                                          </div>
+                                                          <div>
+                                                              <div className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                                  {allocUser?.name}
+                                                                  {isMe && <span className="text-[10px] text-slate-400 font-normal">(Bạn)</span>}
+                                                              </div>
+                                                              <div className="text-[10px] text-slate-500">
+                                                                {alloc.percentage < 100 ? `${alloc.percentage.toFixed(0)}% trách nhiệm` : '100% trách nhiệm'}
+                                                              </div>
+                                                          </div>
+                                                      </div>
+
+                                                      <div className="text-right">
+                                                          <div className="text-sm font-bold text-slate-800">{formatCurrency(total)}</div>
+                                                          <div className="flex items-center justify-end gap-2 mt-0.5">
+                                                              {isPayer ? (
+                                                                  <span className="text-[10px] font-bold text-amber-600">Người ứng tiền</span>
+                                                              ) : alloc.isPaid ? (
+                                                                  <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                                                                      <CheckCircle2 className="w-3 h-3" /> Đã trả xong
+                                                                  </span>
+                                                              ) : (
+                                                                  <div className="flex items-center gap-2">
+                                                                      {paid > 0 && <span className="text-[10px] text-slate-400">Đã trả {formatCurrency(paid)}</span>}
+                                                                      <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">Còn nợ</span>
+                                                                      {canCollect && (
+                                                                          <button 
+                                                                              onClick={(e) => {
+                                                                                  e.stopPropagation();
+                                                                                  handleOpenPaymentConfirm(cost.id, alloc.userId, allocUser?.name || '', alloc.amount, alloc.payments || [], cost.date, cost.interestRate);
+                                                                              }}
+                                                                              className="flex items-center gap-1 px-2 py-1 bg-primary-600 text-white text-[10px] font-bold rounded shadow-sm hover:bg-primary-700 active:scale-95 transition-all"
+                                                                          >
+                                                                              <DollarSign className="w-3 h-3" /> Thu
+                                                                          </button>
+                                                                      )}
+                                                                  </div>
+                                                              )}
+                                                          </div>
+                                                      </div>
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  </div>
                               </div>
                           )}
                       </div>
