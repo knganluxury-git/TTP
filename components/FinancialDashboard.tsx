@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Cost, User, Role, DebtRecord, Stage } from '../types';
 import { formatCurrency, calculateLoanStatus, formatDate } from '../utils/finance';
-import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Delete, Calendar, Calculator, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, Plus, Wallet, ChevronDown, ChevronUp, Percent, DollarSign, PieChart, TrendingUp, Sparkles, Bell, ThumbsUp, AlertTriangle, X, Send, Bot, User as UserIcon, RefreshCw, MessageSquareText, Minimize2, Paperclip, FileText, Image as ImageIcon, ArrowUpRight, ArrowDownLeft, MoreHorizontal, Delete, Calendar, Calculator, CheckCircle2, Share2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface FinancialDashboardProps {
@@ -212,6 +212,34 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
       setPaymentAmountInput(Math.round(status.remainingPrincipal).toString());
   };
 
+  const handleShareZalo = async (e: React.MouseEvent, cost: Cost) => {
+    e.stopPropagation();
+    const payerName = users.find(u => u.id === cost.payerId)?.name || 'Ai đó';
+    const message = `💸 [HTTP Home] Chi phí mới\n━━━━━━━━━━━━━━━━\n📝 Nội dung: ${cost.description}\n💰 Số tiền: ${formatCurrency(cost.amount)}\n👤 Người chi: ${payerName}\n📅 Ngày: ${formatDate(cost.date)}`;
+
+    if (navigator.share) {
+        // Mobile Native Share
+        try {
+            await navigator.share({
+                title: 'Chi phí HTTP Home',
+                text: message,
+            });
+        } catch (err) {
+            // User cancelled share
+        }
+    } else {
+        // Desktop Fallback: Copy to clipboard & Open Zalo Web
+        try {
+            await navigator.clipboard.writeText(message);
+            if(window.confirm("Đã sao chép nội dung! Bạn có muốn mở Zalo Web để dán vào nhóm không?")) {
+                window.open("https://chat.zalo.me", "_blank");
+            }
+        } catch (err) {
+            alert("Không thể sao chép. Vui lòng thử lại.");
+        }
+    }
+  };
+
   const totalProjectCost = useMemo(() => {
     return costs.filter(c => c.status === 'APPROVED').reduce((sum, c) => sum + c.amount, 0);
   }, [costs]);
@@ -400,6 +428,15 @@ export const FinancialDashboard: React.FC<FinancialDashboardProps> = ({
                                               <ThumbsUp className="w-4 h-4" /> Duyệt chi
                                           </button>
                                       )}
+                                      
+                                      {/* Share to Zalo Button */}
+                                      <button 
+                                        onClick={(e) => handleShareZalo(e, cost)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 text-sm font-bold rounded-xl hover:bg-blue-100 transition-colors whitespace-nowrap"
+                                      >
+                                          <Share2 className="w-4 h-4" /> Chia sẻ Zalo
+                                      </button>
+
                                       {(currentUser.id === cost.payerId || currentUser.role === Role.ADMIN) && (
                                         <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-200 cursor-pointer transition-colors whitespace-nowrap">
                                             <input type="file" multiple className="hidden" onChange={(e) => {
